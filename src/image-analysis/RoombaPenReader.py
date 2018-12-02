@@ -7,11 +7,13 @@ from operator import itemgetter
 from math import asin
 from math import degrees
 
+# Known bugs:
+# 1. Does not work with pixel-perfect codes orientated to N, S, E, W (division by 0)
+
 # Todo:
 # 1. Report areas of investigation
-# 2. Report orientation
-# 3. Maybe change to use classes for codes (to keep info in one place instead of passing)
-# 4. Gaussian filter for straight-line on hazard tape
+# 2. Maybe change to use classes for codes (to keep info in one place instead of passing)
+# 3. Gaussian filter for straight-line on hazard tape
 REGION_TOLERANCE = 5
 
 
@@ -21,13 +23,18 @@ def calculateLength(point1, point2):
 
 
 def findMidpoint(point1, point2):
-    midpoint = ((point1[0] + point2[0]) / 2, (point1[1] + point2[1]) / 2)
+    midpoint = ((point2[0] + point1[0]) / 2, (point1[1] + point2[1]) / 2)
     return midpoint
 
 
-# Finds the gradient and y-intercept of the line between two points
-def findLineEquation(point1, point2):
-    m = (point2[1] - point1[1]) / (point2[0] - point1[0] * 1.0)
+# Finds the gradient and y-intercept of the line between two points. Swaps the Y values because
+# screen has origin in top-left corner, not bottom-left corner
+def findLineEquation(point1, point2, invertY=False):
+    if invertY:
+        m = (point1[1] - point2[1]) / (point2[0] - point1[0] * 1.0)
+    else:
+        m = (point2[1] - point1[1]) / (point2[0] - point1[0] * 1.0)
+
     c = point1[1] - (m * point1[0])
     return {'point1': point1, 'point2': point2, 'm': m, 'c': c}
 
@@ -141,96 +148,113 @@ def generateBoxRegions(boxes):
 def findOrientation(boxes, outerBoxes, shape, frame):
     lines = []
 
-    print('outerBoxes:')
-    for box in outerBoxes:
-        print(box)
-
-    # TODO to find diagonal, take distance between 3 and the one which isn't on the longest line is the diagonal line
     # Find 3 equations from first outer box
-    eqtnAB = {'start': outerBoxes[0],
-              'end': outerBoxes[1],
-              'equation': findLineEquation(outerBoxes[0]['centre'], outerBoxes[1]['centre'])}
-    eqtnAC = {'start': outerBoxes[0],
-              'end': outerBoxes[2],
-              'equation': findLineEquation(outerBoxes[0]['centre'], outerBoxes[2]['centre'])}
-    eqtnAD = {'start': outerBoxes[0],
-              'end': outerBoxes[3],
-              'equation': findLineEquation(outerBoxes[0]['centre'], outerBoxes[3]['centre'])}
+    distBC = calculateLength(outerBoxes[1]['centre'], outerBoxes[2]['centre'])
+    distBD = calculateLength(outerBoxes[1]['centre'], outerBoxes[3]['centre'])
+    distCD = calculateLength(outerBoxes[2]['centre'], outerBoxes[3]['centre'])
 
-    mList = [{'name': 'AB', 'm': eqtnAB['equation']['m']},
-             {'name': 'AC', 'm': eqtnAC['equation']['m']},
-             {'name': 'AD', 'm': eqtnAD['equation']['m']}]
+    lengthList = [{'name': 'BC', 'length': distBC},
+                  {'name': 'BD', 'length': distBD},
+                  {'name': 'CD', 'length': distCD}]
 
-    print('mList:')
-    for entry in mList:
-        print(entry)
+    sortedLengthList = sorted(lengthList, key=itemgetter('length'))
 
-    print('sortedMList')
-    sortedMList = sorted(mList, key=itemgetter('m'))
-    for entry in sortedMList:
-        print(entry)
-
-    nonDiagonals = []
+    nonDiagonalEnds = []
     lastOuterBox = None
-    i = 0
-    for entry in sortedMList:
-        if i == 1:
-            if entry['name'] == 'AB':
-                nonDiagonals = [eqtnAC, eqtnAD]
-                lastOuterBox = outerBoxes[1]
-            elif entry['name'] == 'AC':
-                nonDiagonals = [eqtnAB, eqtnAD]
-                lastOuterBox = outerBoxes[2]
-            else:
-                nonDiagonals = [eqtnAB, eqtnAC]
-                lastOuterBox = outerBoxes[3]
+    maxDistance = sortedLengthList[2]
+    if maxDistance['name'] == 'BC':
+        nonDiagonalEnds = [outerBoxes[1]['centre'], outerBoxes[2]['centre']]
+        lastOuterBox = outerBoxes[3]
+    elif maxDistance['name'] == 'BD':
+        nonDiagonalEnds = [outerBoxes[1]['centre'], outerBoxes[3]['centre']]
+        lastOuterBox = outerBoxes[2]
+    else:
+        nonDiagonalEnds = [outerBoxes[2]['centre'], outerBoxes[3]['centre']]
+        lastOuterBox = outerBoxes[1]
 
-        i += 1
-
-    outerEquations = [nonDiagonals[0]['equation'], nonDiagonals[0]['equation']]
-    outerEquations.append(findLineEquation(nonDiagonals[0]['end']['centre'], lastOuterBox['centre']))
-    outerEquations.append(findLineEquation(nonDiagonals[1]['end']['centre'], lastOuterBox['centre']))
+    outerEquations = []
+    outerEquations.append(findLineEquation(outerBoxes[0]['centre'], nonDiagonalEnds[0]))
+    outerEquations.append(findLineEquation(outerBoxes[0]['centre'], nonDiagonalEnds[1]))
+    outerEquations.append(findLineEquation(nonDiagonalEnds[0], lastOuterBox['centre']))
+    outerEquations.append(findLineEquation(nonDiagonalEnds[1], lastOuterBox['centre']))
 
     for eqtn in outerEquations:
         regions = generateBoxRegions(boxes)
         lines.append({'endPoints': (eqtn['point1'], eqtn['point2']), 'crosses': countLineCrossesRegions(eqtn, regions)})
 
-        if len(lines) > 1:
-            lines[len(lines) - 1]['prev'] = lines[len(lines) - 2]
-
-    lines[3]['prev'] = lines[0]
-
     topLine = None
-    for line in lines:
-        if shape == 'pen':
-            if line['prev']['crosses'] == 3 and line['crosses'] == 3:
-                topLine = line
-        elif shape == 'roomba':
+    if shape == 'pen':
+        # Identify lone corner
+        twoCrossLines = []
+        for line in lines:
+            if line['crosses'] == 2:
+                twoCrossLines.append(line)
+
+        loneCorner = None
+        for box in outerBoxes:
+            if box['centre'] in twoCrossLines[0]['endPoints'] and box['centre'] in twoCrossLines[1]['endPoints']:
+                loneCorner = box
+
+        # Identify opposite corner
+        oppCorner = None
+        for box in outerBoxes:
+            if box['centre'] not in twoCrossLines[0]['endPoints'] and box['centre'] not in twoCrossLines[1]['endPoints']:
+                oppCorner = box
+
+        # Store remaining two corners
+        otherCorners = []
+        for box in outerBoxes:
+            if box is not loneCorner and box is not oppCorner:
+                otherCorners.append(box)
+
+        # Find other topLine corner
+        if loneCorner['centre'][1] < oppCorner['centre'][1]:
+            # Determine left-most other corner
+            if otherCorners[0]['centre'][0] < otherCorners[1]['centre'][0]:
+                topLine = {'endPoints': ((otherCorners[0]['centre']), (oppCorner['centre']))}
+            else:
+                topLine = {'endPoints': ((otherCorners[1]['centre']), (oppCorner['centre']))}
+        elif loneCorner['centre'][1] > oppCorner['centre'][1]:
+            # Determine right-most other corner
+            if otherCorners[0]['centre'][0] > otherCorners[1]['centre'][0]:
+                topLine = {'endPoints': ((otherCorners[0]['centre']), (oppCorner['centre']))}
+            else:
+                topLine = {'endPoints': ((otherCorners[1]['centre']), (oppCorner['centre']))}
+        elif loneCorner['centre'][0] < oppCorner['centre'][0]:
+            # Determine bottom-most other corner
+            if otherCorners[0]['centre'][1] > otherCorners[1]['centre'][1]:
+                topLine = {'endPoints': ((otherCorners[0]['centre']), (oppCorner['centre']))}
+            else:
+                topLine = {'endPoints': ((otherCorners[1]['centre']), (oppCorner['centre']))}
+        else:
+            # Determine top-most other corner
+            if otherCorners[0]['centre'][1] < otherCorners[1]['centre'][1]:
+                topLine = {'endPoints': ((otherCorners[0]['centre']), (oppCorner['centre']))}
+            else:
+                topLine = {'endPoints': ((otherCorners[1]['centre']), (oppCorner['centre']))}
+
+    elif shape == 'roomba':
+        for line in lines:
             if line['crosses'] == 3:
-                ('topLine set')
                 topLine = line
 
     # Get line eqtn between top line ends
     topLineEquation = findLineEquation(topLine['endPoints'][0], topLine['endPoints'][1])
     centre = findMidpoint(topLine['endPoints'][0], topLine['endPoints'][1])
-    print('TopLine:')
-    print(topLineEquation)
 
     perpLineEquation = {'linePoint': centre, 'm': (-1 / topLineEquation['m'] * 1.0)}
     perpLineEquation['c'] = centre[1] - (perpLineEquation['m'] * centre[0])
-    print('PerpLine:')
-    print(perpLineEquation)
 
     # Find whether to use y = 0 or y = Y
     otherCorners = []
-    for box in boxes:
+    for box in outerBoxes:
         if box['centre'] not in topLine['endPoints']:
             otherCorners.append(box)
 
     otherLineCentre = findMidpoint(otherCorners[0]['centre'], otherCorners[1]['centre'])
 
     if otherLineCentre[1] < centre[1]:
-        yPlus1, _ = frame.shape
+        yPlus1, _, _ = frame.shape
         perpLineEquation['edgePoint'] = (None, yPlus1 - 1)
     elif otherLineCentre[1] > centre[1]:
         perpLineEquation['edgePoint'] = (None, 0)
@@ -239,14 +263,14 @@ def findOrientation(boxes, outerBoxes, shape, frame):
     else:
         return 270
 
-    perpX = (perpLineEquation['edgePoint'][1] - perpLineEquation['c']) / perpLineEquation['m']
+    perpX = int(round((perpLineEquation['edgePoint'][1] - perpLineEquation['c']) / perpLineEquation['m']))
     perpLineEquation['edgePoint'] = (perpX, perpLineEquation['edgePoint'][1])
 
     # Apply sine rule to find angle
     lengthOpp90 = calculateLength(perpLineEquation['linePoint'], perpLineEquation['edgePoint'])
     primeMeridianPointX = perpLineEquation['linePoint'][0]
     primeMeridianPointY = perpLineEquation['edgePoint'][1]
-    lengthOppTarget = calculateLength((primeMeridianPointX, primeMeridianPointY), perpLineEquation['linePoint'])
+    lengthOppTarget = calculateLength((primeMeridianPointX, primeMeridianPointY), perpLineEquation['edgePoint'])
     angle = degrees(asin(lengthOppTarget / lengthOpp90))
     print(angle)
 
@@ -427,10 +451,10 @@ def decode(frame):
         return 'todo - a return with the identified element(s) plus the mystery elements'
 
 
-zero = cv2.imread("test-images/RoombaBoxesInvertTight.png")
-ninety = cv2.imread("test-images/RoombaBoxesInvertTight90.png")
-oneeighty = cv2.imread("test-images/RoombaBoxesInvertTight180.png")
-twoseventy = cv2.imread("test-images/RoombaBoxesInvertTight270.png")
+boxes1 = cv2.imread("test-images/boxes1.png")
+boxes2 = cv2.imread("test-images/boxes2.png")
+boxes4slice = cv2.imread("test-images/boxes4slice.png")
+boxes6 = cv2.imread("test-images/boxes6.png")
 twoxx = cv2.imread("test-images/RoombaBoxesInvertTight2xx.png")
 xx = cv2.imread("test-images/RoombaBoxesInvertTightxx.png")
 
@@ -440,3 +464,7 @@ xx = cv2.imread("test-images/RoombaBoxesInvertTightxx.png")
 # decode(twoseventy)
 decode(twoxx)  # topline: (27,35), (36, 132)
 decode(xx)
+decode(boxes1)
+decode(boxes2)
+decode(boxes4slice)
+decode(boxes6)
