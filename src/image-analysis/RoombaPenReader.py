@@ -362,52 +362,37 @@ def decode(frame):
     # print(length)
     # 1. none - Nothing on screen
     if length == 0:
-        return []
+        return {'identified': [], 'investigate': []}
     # 2. less than six - we might be near one, go towards
     if length < 6:
-        return []
+        return {'identified': [], 'investigate': boxes}
     # 3. six - we should identify it
     if length == 6:
-        return [identifyPattern(boxes, frame)]
-    # 4. more than six - We should identify the one, and mark the others for exploration
-    if length > 6 and length < 12:
-        returned = []
-        i = 0
-        while i <= length - 6:
-            boxesSet = [boxes[i], boxes[i + 1], boxes[i + 2], boxes[i + 3], boxes[i + 4], boxes[i + 5]]
-            for identified in identifyPattern(boxesSet, frame):
-                if identified in ['roomba', 'pen', 'unknown']:
-                    returned.append(identified)
-                i += 1
-
-        return 'todo - a return with the identified element plus the mystery elements'
-    # 5. twelve - identify both
-    if length == 12:
-        returned = []
-        i = 0
-        while i <= length - 6:
-            boxesSet = [boxes[i], boxes[i + 1], boxes[i + 2], boxes[i + 3], boxes[i + 4], boxes[i + 5]]
-            for identified in identifyPattern(boxesSet, frame):
-                if identified in ['roomba', 'pen', 'unknown']:
-                    returned.append(identified)
-                i += 1
-
-        newReturned = []
-        for icon in returned:
-            if icon['id'] == 'roomba' or icon['id'] == 'pen':
-                newReturned.append(icon)
-        if len(newReturned) == 2:
-            return newReturned
+        identifiedPattern = identifyPattern(boxes, frame)
+        if identifiedPattern['id'] in ['roomba', 'pen']:
+            return {'identified': identifiedPattern, 'investigate': []}
         else:
-            return 'todo - a return with the identified element plus the mystery elements'
-    # 6. more than twelve - we should try to identify, and mark the extras to see what causes confusion
-    if length > 12:
-        returned = []
+            return {'identified': [], 'investigate': boxes}
+    # 4. more than six - We should identify the one, and mark the others for exploration
+    if length > 6:
+        identified = []
+        whitelist = []
         i = 0
         while i <= length - 6:
             boxesSet = [boxes[i], boxes[i + 1], boxes[i + 2], boxes[i + 3], boxes[i + 4], boxes[i + 5]]
-            identified = identifyPattern(boxesSet, frame)
-            if identified in ['roomba', 'pen', 'unknown']:
-                returned.append(identified)
-            i += 1
-        return 'todo - a return with the identified element(s) plus the mystery elements'
+            for identifiedPattern in identifyPattern(boxesSet, frame):
+                if identifiedPattern['id'] in ['roomba', 'pen']:
+                    identified.append(identifiedPattern)
+                    for box in boxesSet:
+                        whitelist.append(box)
+                    i += 6
+                else:
+                    i += 1
+
+        # Include the boxes to be investigated
+        investigate = []
+        for box in boxes:
+            if box not in whitelist:
+                investigate.append(box)
+
+        return {'identified': identified, 'investigate': investigate}
