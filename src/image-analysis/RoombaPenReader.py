@@ -272,24 +272,17 @@ def findOrientation(boxes, outerBoxes, shape, frame):
     primeMeridianPointY = perpLineEquation['edgePoint'][1]
     lengthOppTarget = calculateLength((primeMeridianPointX, primeMeridianPointY), perpLineEquation['edgePoint'])
     angle = degrees(asin(lengthOppTarget / lengthOpp90))
-    print(angle)
 
     # Do the necessary addition or subtraction to find the angle from North (0 to 359)
     if perpLineEquation['edgePoint'][1] == 0:
-        print('finding angle from North')
         if perpLineEquation['edgePoint'][0] <= primeMeridianPointX:
-            print('angle is to the left of North')
             return 360 - angle
         else:
-            print('angle is to the right of North')
             return angle
     else:
-        print('finding angle from South')
         if perpLineEquation['edgePoint'][0] >= primeMeridianPointX:
-            print('angle is to the right of South')
             return 180 - angle
         else:
-            print('angle is to the left of South')
             return 180 + angle
 
 
@@ -308,36 +301,6 @@ def identifyPattern(boxes, frame):
         for corner in box['corners']:
             if corner == bounds[0] or corner == bounds[1] or corner == bounds[2] or corner == bounds[3]:
                 outerBoxes.append(box)
-
-    # Verify squareness
-    # Find distance between all four outer corners
-    distances = []
-    i = 0
-    j = 1
-    while i < 3:
-        while j < 4:
-            distances.append(calculateLength(bounds[i], bounds[j]))
-            j += 1
-        i += 1
-        j = i + 1
-
-    # Distances should have 4 similar, and 2 others similar (4 edges and 2 diagonals)
-    distances.sort()
-    outerMean = (distances[0] + distances[1] + distances[2] + distances[3]) / 4.0
-    innerMean = (distances[4] + distances[5]) / 2.0
-
-    k = 0
-    for distance in distances:
-        if k < 4:
-            if distance > outerMean + 10 or distance < outerMean - 10:
-                print('Outer line is not of similar distance')
-                return {'id': 'misshapen', 'polygon': tuple(bounds)}
-        else:
-            if distance > innerMean + 10 or distance < innerMean - 10:
-                print('Inner line is not of similar distance')
-                return {'id': 'misshapen', 'polygon': tuple(bounds)}
-
-        k += 1
 
     # Find line equations between centres of outer corner boxes
     lineEquations = []
@@ -360,13 +323,12 @@ def identifyPattern(boxes, frame):
 
     # Pen = 2x 3, 4x 2
     # Roomba = 3x 3, 3x 2
-    print('/////')
     if crosses.count(3) == 2 and crosses.count(2) == 4:
-        print(findOrientation(boxes, outerBoxes, 'pen', frame))
-        return {'id': 'pen', 'polygon': tuple(bounds)}
+        orientation = findOrientation(boxes, outerBoxes, 'pen', frame)
+        return {'id': 'pen', 'polygon': tuple(bounds), 'orientation': orientation}
     elif crosses.count(3) == 3 and crosses.count(2) == 3:
-        print(findOrientation(boxes, outerBoxes, 'roomba', frame))
-        return {'id': 'roomba', 'polygon': tuple(bounds)}
+        orientation = findOrientation(boxes, outerBoxes, 'roomba', frame)
+        return {'id': 'roomba', 'polygon': tuple(bounds), 'orientation': orientation}
     else:
         return {'id': 'unknown', 'polygon': tuple(bounds)}
 
@@ -449,22 +411,3 @@ def decode(frame):
                 returned.append(identified)
             i += 1
         return 'todo - a return with the identified element(s) plus the mystery elements'
-
-
-boxes1 = cv2.imread("test-images/boxes1.png")
-boxes2 = cv2.imread("test-images/boxes2.png")
-boxes4slice = cv2.imread("test-images/boxes4slice.png")
-boxes6 = cv2.imread("test-images/boxes6.png")
-twoxx = cv2.imread("test-images/RoombaBoxesInvertTight2xx.png")
-xx = cv2.imread("test-images/RoombaBoxesInvertTightxx.png")
-
-# decode(zero)
-# decode(ninety)
-# decode(oneeighty)
-# decode(twoseventy)
-decode(twoxx)  # topline: (27,35), (36, 132)
-decode(xx)
-decode(boxes1)
-decode(boxes2)
-decode(boxes4slice)
-decode(boxes6)
