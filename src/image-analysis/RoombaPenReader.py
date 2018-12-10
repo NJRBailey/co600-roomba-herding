@@ -5,7 +5,7 @@ import HierarchyReader
 from operator import itemgetter
 from math import asin
 from math import degrees
-from utils import calculateLength
+from ImageAnalysisUtils import calculateLength
 
 # Known bugs:
 # 1. Division by 0 error

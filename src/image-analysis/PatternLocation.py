@@ -1,6 +1,6 @@
 import cv2
 from BoxesChecker import decode
-from utils import calculateLength
+from ImageAnalysisUtils import calculateLength
 
 
 def coordInBounds(coordinate, boundingBox):
