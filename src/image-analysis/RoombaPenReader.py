@@ -2,10 +2,10 @@
 
 import cv2
 import HierarchyReader
-from math import hypot
 from operator import itemgetter
 from math import asin
 from math import degrees
+from utils import calculateLength
 
 # Known bugs:
 # 1. Division by 0 error
@@ -15,12 +15,6 @@ from math import degrees
 # 2. Maybe change to use classes for codes (to keep info in one place instead of passing)
 # 3. Gaussian filter for straight-line on hazard tape
 REGION_TOLERANCE = 5
-
-
-# Finds and returns the distance between two points
-def calculateLength(point1, point2):
-    length = hypot(point2[0] - point1[0], point2[1] - point1[1])
-    return length
 
 
 # Finds and returns the coordinate of the point between two points
