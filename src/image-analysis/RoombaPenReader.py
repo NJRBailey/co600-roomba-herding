@@ -8,7 +8,7 @@ from math import asin
 from math import degrees
 
 # Known bugs:
-# 1. Does not work with pixel-perfect codes orientated to N, S, E, W (division by 0)
+# 1. Division by 0 error
 
 # Todo:
 # 1. Report areas of investigation
@@ -17,11 +17,13 @@ from math import degrees
 REGION_TOLERANCE = 5
 
 
+# Finds and returns the distance between two points
 def calculateLength(point1, point2):
     length = hypot(point2[0] - point1[0], point2[1] - point1[1])
     return length
 
 
+# Finds and returns the coordinate of the point between two points
 def findMidpoint(point1, point2):
     midpoint = ((point2[0] + point1[0]) / 2, (point1[1] + point2[1]) / 2)
     return midpoint
@@ -62,13 +64,14 @@ def countLineCrossesRegions(line, regions):
 
 # Checks that a supplied y falls approximately on the line
 def verifyLineEquation(expectedY, x, m, c):
-    # print('todo: adjust line equation tolerance')
     y = (m * x) + c
     return y > expectedY - 2 and y < expectedY + 2
 
 
+# Finds and returns the coordinates for the corners of a pattern.
 def identifyBounds(boxes, frame):
-    # Identify two options
+    # Need to check whether pattern is perfectly aligned
+    # We check the y coordinates for each corner
     yCount = {}
     for box in boxes:
         for corner in box['corners']:
@@ -78,7 +81,7 @@ def identifyBounds(boxes, frame):
             else:
                 yCount[y] = 1
 
-    # Possibly perfectly aligned
+    # If multiple corners have the same y-coordinate, then they are perfectly aligned
     perfectAlignment = False
     for y in yCount:
         if yCount[y] > 2:
@@ -111,7 +114,6 @@ def identifyBounds(boxes, frame):
 
         for box in boxes:
             for corner in box['corners']:
-                # cv2.circle(frame, (int(corner[0]), int(corner[1])), 4, (0, 255, 0), -1)
                 if corner[0] > hX[0]:
                     hX = corner
                 if corner[0] < lX[0]:
@@ -124,6 +126,7 @@ def identifyBounds(boxes, frame):
         return [hX, lX, hY, lY]
 
 
+# Creates and returns a region of coordinates around a point for each box supplied
 def generateBoxRegions(boxes):
     regions = []
     tolerance = REGION_TOLERANCE
@@ -288,7 +291,6 @@ def findOrientation(boxes, outerBoxes, shape, frame):
 
 # Takes 6 boxes and attempts to recognise the Roomba or Pen
 def identifyPattern(boxes, frame):
-    # Check boxes is length 6
     if len(boxes) is not 6:
         raise ValueError('parameter "boxes" must be of length 6')
 
@@ -304,14 +306,14 @@ def identifyPattern(boxes, frame):
 
     # Find line equations between centres of outer corner boxes
     lineEquations = []
-    m = 0
-    n = 1
-    while m < 3:
-        while n < 4:
-            lineEquations.append(findLineEquation(outerBoxes[m]['centre'], outerBoxes[n]['centre']))
-            n += 1
-        m += 1
-        n = m + 1
+    i = 0
+    j = 1
+    while i < 3:
+        while j < 4:
+            lineEquations.append(findLineEquation(outerBoxes[i]['centre'], outerBoxes[j]['centre']))
+            j += 1
+        i += 1
+        j = i + 1
 
     # Find regions from each box centre to check
     regions = generateBoxRegions(boxes)
@@ -333,6 +335,10 @@ def identifyPattern(boxes, frame):
         return {'id': 'unknown', 'polygon': tuple(bounds)}
 
 
+# Takes an image and attempts to identify boxes in Roomba and Pen patterns.
+# Returns a dict containing two arrays. The array with key 'identified' contains patterns
+# which have been identified in the image. The array with key 'investigate' contains
+# boxes which could not be linked to any pattern.
 def decode(frame):
     cannyEdgeGray = cv2.Canny(frame, 127, 255)
 
@@ -343,8 +349,7 @@ def decode(frame):
 
     # Find the big squares with 6 contours
     for linkedList in cannyLinkedLists:
-        # linkedList.printList()
-        if len(linkedList.list) > 5:  # QR codes have 3 position squares, and therefore 6 contours
+        if len(linkedList.list) > 5:
             i = 0
             for item in linkedList.list:
                 if (len(linkedList.list) - i) == 6:
@@ -359,7 +364,6 @@ def decode(frame):
 
     # Cases:
     length = len(boxes)
-    # print(length)
     # 1. none - Nothing on screen
     if length == 0:
         return {'identified': [], 'investigate': []}
