@@ -8,7 +8,7 @@ from math import degrees
 from ImageAnalysisUtils import calculateLength
 
 # Known bugs:
-# 1. Identify bounds will not work with a diamond
+# 1. Shapes with gradient = 'infinity' (actually max int) not registered
 
 # Todo:
 # 1. Maybe change to use classes for codes (to keep info in one place instead of passing)
@@ -60,25 +60,39 @@ def verifyLineEquation(expectedY, x, m, c):
     return y > expectedY - 2 and y < expectedY + 2
 
 
-# Finds and returns the coordinates for the corners of a pattern. DOES NOT WORK WITH DIAMONDS
+# Finds and returns the coordinates for the corners of a pattern.
 def identifyBounds(boxes, frame):
-    # Need to check whether pattern is perfectly aligned
-    # We check the y coordinates for each corner
+    # Check whether pattern is a perfectly-aligned square
+    # Save all the xs and ys with the number of times they appear
+    # If two xs and two ys appear twice each, that is a perfect square
+    xCount = {}
     yCount = {}
     for box in boxes:
+        x = str(box['centre'][0])
         y = str(box['centre'][1])
+        if x in xCount:
+            xCount[x] += 1
+        else:
+            xCount[x] = 1
         if y in yCount:
             yCount[y] += 1
         else:
             yCount[y] = 1
 
-    # If multiple corners have the same y-coordinate, then they are perfectly aligned DOES NOT WORK WITH DIAMONDS
-    perfectAlignment = False
+    numberOfSameXs = 0
+    numberOfSameYs = 0
+    for x in xCount:
+        if xCount[x] == 2:
+            numberOfSameXs += 1
     for y in yCount:
-        if yCount[y] > 2:
-            perfectAlignment = True
+        if yCount[y] == 2:
+            numberOfSameYs += 1
 
-    if perfectAlignment:
+    perfectSquare = False
+    if numberOfSameXs == 2 and numberOfSameYs == 2:
+        perfectSquare = True
+
+    if perfectSquare:
         tl = boxes[0]['corners'][0]  # Lowest X, highest Y
         tr = boxes[0]['corners'][1]  # Highest X, highest Y
         bl = boxes[0]['corners'][2]  # Lowest X, lowest Y
