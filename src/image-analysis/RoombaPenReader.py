@@ -262,7 +262,7 @@ def findOrientation(boxes, outerBoxes, shape, frame):
     otherLineCentre = findMidpoint(otherCorners[0]['centre'], otherCorners[1]['centre'])
 
     if otherLineCentre[1] < centre[1]:
-        yPlus1, _, _ = frame.shape
+        yPlus1, _ = frame.shape
         perpLineEquation['edgePoint'] = (None, yPlus1 - 1)
     elif otherLineCentre[1] > centre[1]:
         perpLineEquation['edgePoint'] = (None, 0)
@@ -378,7 +378,7 @@ def decode(frame):
     if length == 6:
         identifiedPattern = identifyPattern(boxes, frame)
         if identifiedPattern['id'] in ['roomba', 'pen']:
-            return {'identified': identifiedPattern, 'investigate': []}
+            return {'identified': [identifiedPattern], 'investigate': []}
         else:
             return {'identified': [], 'investigate': boxes}
     # 4. more than six - We should identify the one, and mark the others for exploration
