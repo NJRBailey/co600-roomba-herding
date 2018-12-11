@@ -47,11 +47,6 @@ def findPatternLocation(camFrame, debug=False):
 
     for code in decoded:
         if code['id'] in ['roomba', 'pen', 'unknown']:
-            # Highlight four corners
-            print(code)
-            for point in code['polygon']:
-                cv2.circle(frame, (point[0], point[1]), 5, (255, 0, 255), -1)
-
             points = code['polygon']
 
             # Find centre
