@@ -8,12 +8,10 @@ from math import degrees
 from ImageAnalysisUtils import calculateLength
 
 # Known bugs:
-# 1. Division by 0 error
+# 1. Identify bounds will not work with a diamond
 
 # Todo:
-# 1. Report areas of investigation
-# 2. Maybe change to use classes for codes (to keep info in one place instead of passing)
-# 3. Gaussian filter for straight-line on hazard tape
+# 1. Maybe change to use classes for codes (to keep info in one place instead of passing)
 REGION_TOLERANCE = 5
 
 
@@ -25,9 +23,9 @@ def findMidpoint(point1, point2):
 
 # Finds the gradient and y-intercept of the line between two points. Swaps the Y values because
 # screen has origin in top-left corner, not bottom-left corner
-def findLineEquation(point1, point2, invertY=False):
-    if invertY:
-        m = (point1[1] - point2[1]) / (point2[0] - point1[0] * 1.0)
+def findLineEquation(point1, point2):
+    if point1[0] == point2[0]:
+        m = 2147483647  # Maximum 32-bit int in python, used when m = infinity
     else:
         m = (point2[1] - point1[1]) / (point2[0] - point1[0] * 1.0)
 
@@ -62,20 +60,19 @@ def verifyLineEquation(expectedY, x, m, c):
     return y > expectedY - 2 and y < expectedY + 2
 
 
-# Finds and returns the coordinates for the corners of a pattern.
+# Finds and returns the coordinates for the corners of a pattern. DOES NOT WORK WITH DIAMONDS
 def identifyBounds(boxes, frame):
     # Need to check whether pattern is perfectly aligned
     # We check the y coordinates for each corner
     yCount = {}
     for box in boxes:
-        for corner in box['corners']:
-            y = str(corner[1])
-            if y in yCount:
-                yCount[y] += 1
-            else:
-                yCount[y] = 1
+        y = str(box['centre'][1])
+        if y in yCount:
+            yCount[y] += 1
+        else:
+            yCount[y] = 1
 
-    # If multiple corners have the same y-coordinate, then they are perfectly aligned
+    # If multiple corners have the same y-coordinate, then they are perfectly aligned DOES NOT WORK WITH DIAMONDS
     perfectAlignment = False
     for y in yCount:
         if yCount[y] > 2:
@@ -290,7 +287,6 @@ def identifyPattern(boxes, frame):
 
     # Find bounds
     bounds = identifyBounds(boxes, frame)
-
     # Pick corner bound boxes
     outerBoxes = []
     for box in boxes:
