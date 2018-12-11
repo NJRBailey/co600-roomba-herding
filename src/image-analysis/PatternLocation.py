@@ -14,7 +14,7 @@ def coordInBounds(coordinate, boundingBox):
     return False
 
 
-def qrCodeLocation(camFrame, debug=False):
+def findPatternLocation(camFrame, debug=False):
     frame = cv2.flip(camFrame, 0)
 
     if debug:
