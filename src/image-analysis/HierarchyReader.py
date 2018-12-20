@@ -2,6 +2,7 @@
 # Takes a list of contours and returns a collection of linkedLists to show the hierarchies
 # of the nested contours.
 
+
 # Represents a single contour
 class Node:
     def __init__(self, ident, parent, firstChild):
@@ -24,7 +25,6 @@ class LinkedList:
                 if node.id == self.list[0].parent:
                     parentNode = node
             self.list.insert(0, parentNode)  # todo use collections.deque for quicker adding
-
 
     def printList(self):
         idsList = []

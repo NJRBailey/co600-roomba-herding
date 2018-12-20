@@ -19,7 +19,7 @@ from ImageAnalysisUtils import calculateLength
 #
 # Known bugs:
 # 1. Shapes with gradient = 'infinity' (actually max int) not registered
-# 2. Not efficient for more than 6 interesting contours
+# 2. Does not correctly try all combinations of boxes (should do 1-6 | 1,3-7 | 1,4-8 etc.
 REGION_TOLERANCE = 5
 
 
