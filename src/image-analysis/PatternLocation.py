@@ -25,7 +25,8 @@ def findPatternLocation(frame, debug=False):
         cv2.waitKey(1)
     sections = []
     height, width, _ = frame.shape
-    grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    grayFrame = frame
+    # grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # Sectioning of frame
     thirdWidth = int(round(width / 3.0))
     thirdHeight = int(round(height / 3.0))

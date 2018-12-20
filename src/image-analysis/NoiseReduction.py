@@ -11,6 +11,7 @@ class Region:
     def __init__(self, ident, edges, pixels, neighbours, lightness, regionsW, regionsH):
         self.id = ident
         self.edges = edges
+        self.pixels = pixels
         self.neighbours = []
         for neighbour in neighbours:
             if -1 in neighbour or neighbour[0] == regionsW or neighbour[1] == regionsH:
@@ -42,7 +43,6 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # Split frame up into regions
     height, width = grayFrame.shape
-    print(height)
     normalHeight = height / regionsH
     extraHeight = height % regionsH
     normalWidth = width / regionsW
@@ -52,6 +52,7 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
         for row in range(regionsH):
             # Make a region
             ident = (row, column)
+            print(ident)
             neighbours = ((row - 1, column), (row, column + 1), (row + 1, column), (row, column - 1))  # N, E, S, W
             regionHeight = normalHeight
             regionWidth = normalWidth
@@ -60,24 +61,39 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
             if column == regionsW - 1:
                 regionWidth += extraWidth
             leftX = column * normalWidth
+            # leftX = 0
             rightX = leftX + regionWidth
+            # rightX = regionWidth
             topY = row * normalHeight
+            # topY = 0
             bottomY = topY + regionHeight
+            # bottomY = regionHeight
             edges = (leftX, rightX, topY, bottomY)  # x1, x2, y1, y2
             pixels = grayFrame[topY:bottomY, leftX:rightX]
+            print(pixels)
+            print(len(pixels))
+            # print(len(pixels))
+            # print(len(pixels[0]))
             # Find dominant colour
             pixelLightnessGroups = {'low': 0, 'mid': 0, 'high': 0}
             pxSpaceX = (rightX - leftX) / 4
             pxSpaceY = (bottomY - topY) / 4
+            # print(pxSpaceX)
+            # print(pxSpaceY)
             # Get 9 pixels in a 3x3 shape around centre
             sampledPixels = [
-                pixels[leftX + pxSpaceX, topY + pxSpaceY], pixels[leftX + (pxSpaceX * 2), topY + pxSpaceY],
-                pixels[rightX - pxSpaceX, topY + pxSpaceY], pixels[leftX + pxSpaceX, topY + (pxSpaceY * 2)],
-                pixels[leftX + (pxSpaceX * 2), topY + (pxSpaceY * 2)], pixels[rightX - pxSpaceX, topY + (pxSpaceY * 2)],
-                pixels[leftX + pxSpaceX, topY - pxSpaceY], pixels[leftX + (pxSpaceX * 2), topY - pxSpaceY],
-                pixels[rightX - pxSpaceX, topY - pxSpaceY]
+                pixels[0 + pxSpaceX, 0 + pxSpaceY],
+                pixels[0 + (pxSpaceX * 2), 0 + pxSpaceY],
+                pixels[regionWidth - pxSpaceX, 0 + pxSpaceY],
+                pixels[0 + pxSpaceX, 0 + (pxSpaceY * 2)],
+                pixels[0 + (pxSpaceX * 2), 0 + (pxSpaceY * 2)],
+                pixels[regionWidth - pxSpaceX, 0 + (pxSpaceY * 2)],
+                pixels[0 + pxSpaceX, regionHeight - pxSpaceY],
+                pixels[0 + (pxSpaceX * 2), regionHeight - pxSpaceY],
+                pixels[regionWidth - pxSpaceX, regionHeight - pxSpaceY]
             ]
             for px in sampledPixels:
+                # print(px)
                 if px < 85:  # 1/3 of 255
                     pixelLightnessGroups['low'] += 1
                 elif px < 170:  # 2/3 of 255
@@ -85,21 +101,22 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
                 else:
                     pixelLightnessGroups['high'] += 1
             dominantLightness = findDominantLightness(pixelLightnessGroups)
+            # print(dominantLightness)
             regions.append(Region(ident, edges, pixels, neighbours, dominantLightness, regionsW, regionsH))
     darkRegions = []
     for region in regions:
         if region.dominantLightness == 'low':
             darkRegions.append(region)
-    processedFrame = zeros((width, height))
+    processedFrame = zeros((height, width))
     for darkRegion in darkRegions:
         e = darkRegion.edges
-        processedFrame[e[0]:e[1], e[2]:e[3]] = darkRegion.pixels
+        processedFrame[e[2]:e[3], e[0]:e[1]] = darkRegion.pixels
         for neighbour in darkRegion.neighbours:
             if neighbour is not None:
                 for region in regions:
                     if region.id == neighbour:
                         nE = region.edges
-                        processedFrame[nE[0]:nE[1], nE[2]:nE[3]] = region.pixels
+                        processedFrame[nE[2]:nE[3], nE[0]:nE[1]] = region.pixels
     return processedFrame
 
 
@@ -120,7 +137,8 @@ while i < 4:
     print('--------------------------------------------')
     i += 1
     # try:
-    print(reduceNoiseForPatterns(iA[i]))
+    prImage = reduceNoiseForPatterns(iA[i])
+    cv2.imshow('prImage', prImage)
     cv2.waitKey(0)
     # except Exception as e:
     #     print('error with i' + str(i + 1))
