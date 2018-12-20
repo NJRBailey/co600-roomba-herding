@@ -1,5 +1,6 @@
 import cv2
 from numpy import zeros
+from numpy import uint8
 
 # NoiseReduction
 # This file contains functions to reduce the level of irrelevant information in an image.
@@ -52,8 +53,11 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
         for row in range(regionsH):
             # Make a region
             ident = (row, column)
-            print(ident)
-            neighbours = ((row - 1, column), (row, column + 1), (row + 1, column), (row, column - 1))  # N, E, S, W
+            # print(ident)
+            neighbours = (
+                (row - 1, column), (row, column + 1), (row + 1, column), (row, column - 1),  # N, E, S, W
+                (row - 1, column + 1), (row + 1, column + 1), (row + 1, column - 1), (row - 1, column - 1)  # NE, SE, SW, NW
+            )
             regionHeight = normalHeight
             regionWidth = normalWidth
             if row == regionsH - 1:
@@ -70,8 +74,8 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
             # bottomY = regionHeight
             edges = (leftX, rightX, topY, bottomY)  # x1, x2, y1, y2
             pixels = grayFrame[topY:bottomY, leftX:rightX]
-            print(pixels)
-            print(len(pixels))
+            # print(pixels)
+            # print(len(pixels))
             # print(len(pixels))
             # print(len(pixels[0]))
             # Find dominant colour
@@ -107,9 +111,11 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
     for region in regions:
         if region.dominantLightness == 'low':
             darkRegions.append(region)
-    processedFrame = zeros((height, width))
+    processedFrame = zeros((height, width), dtype=uint8)
     for darkRegion in darkRegions:
         e = darkRegion.edges
+        # cv2.imshow('darkregion', darkRegion.pixels)
+        # cv2.waitKey(5000)
         processedFrame[e[2]:e[3], e[0]:e[1]] = darkRegion.pixels
         for neighbour in darkRegion.neighbours:
             if neighbour is not None:
