@@ -9,16 +9,38 @@ from numpy import uint8
 
 # Should hold its own dominant colour, its neighbours, and should set neighbours to None if on an edge
 class Region:
-    def __init__(self, ident, edges, pixels, neighbours, lightness, regionsW, regionsH):
+    def __init__(self, ident, edges, pixels, sampledPixels, neighbours, averageValue, regionsW, regionsH):
         self.id = ident
         self.edges = edges
         self.pixels = pixels
+        self.sampledPixels = sampledPixels
         self.neighbours = []
         for neighbour in neighbours:
             if -1 in neighbour or neighbour[0] == regionsW or neighbour[1] == regionsH:
                 neighbour = None
             self.neighbours.append(neighbour)
+        self.averageValue = averageValue
+
+    def setDominantLightness(self, lightness):
         self.dominantLightness = lightness
+
+
+# Returns two values - the first is the value under which pixels are 'low' lightness, the second is
+# the value under which pixels are 'mid' lightness
+def findLightnessThresholds(regions):
+    lowestValue = 255
+    highestValue = 0
+    # frameAverage = 0
+    for region in regions:
+        if region.averageValue < lowestValue:
+            lowestValue = region.averageValue
+        if region.averageValue > highestValue:
+            highestValue = region.averageValue
+        # frameAverage += region.averageValue
+    # frameAverage = frameAverage / len(regions)
+    third = ((highestValue - lowestValue) / 3) + lowestValue
+    lowThreshold, midThreshold = third, third * 2
+    return lowThreshold, midThreshold
 
 
 # Finds the dominant lightness category for the supplied group
@@ -41,7 +63,13 @@ def findDominantLightness(pxLightGroups):
 
 # Processes and returns a frame to try and reduce the amount of information which is unrelated to patterns.
 def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples a parameter; return small regions
+    # hslFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
+    # h, l, s = cv2.split(hslFrame)
+    # cv2.imshow('s', s)
+    # cv2.imshow('h', h)
+    # cv2.imshow('l', l)
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # cv2.imshow('gray', grayFrame)
     # Split frame up into regions
     height, width = grayFrame.shape
     normalHeight = height / regionsH
@@ -65,25 +93,14 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
             if column == regionsW - 1:
                 regionWidth += extraWidth
             leftX = column * normalWidth
-            # leftX = 0
             rightX = leftX + regionWidth
-            # rightX = regionWidth
             topY = row * normalHeight
-            # topY = 0
             bottomY = topY + regionHeight
-            # bottomY = regionHeight
             edges = (leftX, rightX, topY, bottomY)  # x1, x2, y1, y2
             pixels = grayFrame[topY:bottomY, leftX:rightX]
-            # print(pixels)
-            # print(len(pixels))
-            # print(len(pixels))
-            # print(len(pixels[0]))
             # Find dominant colour
-            pixelLightnessGroups = {'low': 0, 'mid': 0, 'high': 0}
             pxSpaceX = (rightX - leftX) / 4
             pxSpaceY = (bottomY - topY) / 4
-            # print(pxSpaceX)
-            # print(pxSpaceY)
             # Get 9 pixels in a 3x3 shape around centre
             sampledPixels = [
                 pixels[0 + pxSpaceX, 0 + pxSpaceY],
@@ -96,19 +113,23 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
                 pixels[0 + (pxSpaceX * 2), regionHeight - pxSpaceY],
                 pixels[regionWidth - pxSpaceX, regionHeight - pxSpaceY]
             ]
-            for px in sampledPixels:
-                # print(px)
-                if px < 85:  # 1/3 of 255
-                    pixelLightnessGroups['low'] += 1
-                elif px < 170:  # 2/3 of 255
-                    pixelLightnessGroups['mid'] += 1
-                else:
-                    pixelLightnessGroups['high'] += 1
-            dominantLightness = findDominantLightness(pixelLightnessGroups)
-            # print(dominantLightness)
-            regions.append(Region(ident, edges, pixels, neighbours, dominantLightness, regionsW, regionsH))
+            averageValue = sum(sampledPixels) / len(sampledPixels)
+            regions.append(Region(ident, edges, pixels, sampledPixels, neighbours, averageValue, regionsW, regionsH))
+    low, mid = findLightnessThresholds(regions)
+    print(low)
+    print(mid)
     darkRegions = []
     for region in regions:
+        pixelLightnessGroups = {'low': 0, 'mid': 0, 'high': 0}
+        for px in region.sampledPixels:
+            print(px)
+            if px < low:
+                pixelLightnessGroups['low'] += 1
+            elif px < mid:
+                pixelLightnessGroups['mid'] += 1
+            else:
+                pixelLightnessGroups['high'] += 1
+        region.dominantLightness = findDominantLightness(pixelLightnessGroups)
         if region.dominantLightness == 'low':
             darkRegions.append(region)
     processedFrame = zeros((height, width), dtype=uint8)
@@ -136,16 +157,13 @@ i2 = cv2.imread('test-images/IndexCrash3Shadowed.png')
 i3 = cv2.imread('test-images/IndexCrash3PenShadow.png')
 i4 = cv2.imread('test-images/IndexCrash3TapeShadow.png')
 i5 = cv2.imread('test-images/IndexCrash3PenPartShadow.png')
-iA = [i1, i2, i3, i4, i5]
+i6 = cv2.imread('test-images/grass1.png')
+i7 = cv2.imread('test-images/grass2.png')
+i8 = cv2.imread('test-images/concrete1.png')
+iA = [i1, i2, i3, i4, i5, i6, i7, i8]
 
-i = -1
-while i < 4:
+for i in iA:
     print('--------------------------------------------')
-    i += 1
-    # try:
-    prImage = reduceNoiseForPatterns(iA[i])
+    prImage = reduceNoiseForPatterns(i)
     cv2.imshow('prImage', prImage)
     cv2.waitKey(0)
-    # except Exception as e:
-    #     print('error with i' + str(i + 1))
-    #     print(e)
