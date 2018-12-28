@@ -30,16 +30,22 @@ class Region:
 def findLightnessThresholds(regions):
     lowestValue = 255
     highestValue = 0
-    # frameAverage = 0
+    frameAverage = 0
     for region in regions:
+        # print(region.averageValue)
         if region.averageValue < lowestValue:
             lowestValue = region.averageValue
         if region.averageValue > highestValue:
             highestValue = region.averageValue
-        # frameAverage += region.averageValue
-    # frameAverage = frameAverage / len(regions)
+        frameAverage += region.averageValue
+        # print(frameAverage)
+    frameAverage = frameAverage / len(regions)
+    # print(frameAverage)
+    thresholdBias = frameAverage / 128.0  # If the avg lightness is lower/higher than 128, we will lower/raise thresholds
+    # print(thresholdBias)
     third = ((highestValue - lowestValue) / 3) + lowestValue
-    lowThreshold, midThreshold = third, third * 2
+    # print(third)
+    lowThreshold, midThreshold = third * thresholdBias, (third * 2) * thresholdBias
     return lowThreshold, midThreshold
 
 
@@ -80,11 +86,11 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
     for column in range(regionsW):
         for row in range(regionsH):
             # Make a region
-            ident = (row, column)
+            ident = (column, row)
             # print(ident)
             neighbours = (
-                (row - 1, column), (row, column + 1), (row + 1, column), (row, column - 1),  # N, E, S, W
-                (row - 1, column + 1), (row + 1, column + 1), (row + 1, column - 1), (row - 1, column - 1)  # NE, SE, SW, NW
+                (column, row - 1), (column + 1, row), (column, row + 1), (column - 1, row),  # N, E, S, W
+                (column + 1, row - 1), (column + 1, row + 1), (column - 1, row + 1), (column - 1, row - 1)  # NE, SE, SW, NW
             )
             regionHeight = normalHeight
             regionWidth = normalWidth
@@ -103,29 +109,28 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
             pxSpaceY = (bottomY - topY) / 4
             # Get 9 pixels in a 3x3 shape around centre
             sampledPixels = [
-                pixels[0 + pxSpaceX, 0 + pxSpaceY],
-                pixels[0 + (pxSpaceX * 2), 0 + pxSpaceY],
-                pixels[regionWidth - pxSpaceX, 0 + pxSpaceY],
-                pixels[0 + pxSpaceX, 0 + (pxSpaceY * 2)],
-                pixels[0 + (pxSpaceX * 2), 0 + (pxSpaceY * 2)],
-                pixels[regionWidth - pxSpaceX, 0 + (pxSpaceY * 2)],
-                pixels[0 + pxSpaceX, regionHeight - pxSpaceY],
-                pixels[0 + (pxSpaceX * 2), regionHeight - pxSpaceY],
-                pixels[regionWidth - pxSpaceX, regionHeight - pxSpaceY]
+                pixels[0 + pxSpaceY][0 + pxSpaceX],
+                pixels[0 + pxSpaceY][0 + (pxSpaceX * 2)],
+                pixels[0 + pxSpaceY][regionWidth - pxSpaceX],
+                pixels[0 + (pxSpaceY * 2)][0 + pxSpaceX],
+                pixels[0 + (pxSpaceY * 2)][0 + (pxSpaceX * 2)],
+                pixels[0 + (pxSpaceY * 2)][regionWidth - pxSpaceX],
+                pixels[regionHeight - pxSpaceY][0 + pxSpaceX],
+                pixels[regionHeight - pxSpaceY][0 + (pxSpaceX * 2)],
+                pixels[regionHeight - pxSpaceY][regionWidth - pxSpaceX]
             ]
             averageValue = sum(sampledPixels) / len(sampledPixels)
             regions.append(Region(ident, edges, pixels, sampledPixels, neighbours, averageValue, regionsW, regionsH))
     low, mid = findLightnessThresholds(regions)
-    print(low)
-    print(mid)
+    # print(low)
+    # print(mid)
     darkRegions = []
     for region in regions:
         pixelLightnessGroups = {'low': 0, 'mid': 0, 'high': 0}
         for px in region.sampledPixels:
-            print(px)
-            if px < low:
+            if px <= low:
                 pixelLightnessGroups['low'] += 1
-            elif px < mid:
+            elif px <= mid:
                 pixelLightnessGroups['mid'] += 1
             else:
                 pixelLightnessGroups['high'] += 1
@@ -138,12 +143,17 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
         # cv2.imshow('darkregion', darkRegion.pixels)
         # cv2.waitKey(5000)
         processedFrame[e[2]:e[3], e[0]:e[1]] = darkRegion.pixels
+        cv2.imshow('proc', processedFrame)  # TODO show which box is being changed
+        cv2.imshow('lows', frame)
         for neighbour in darkRegion.neighbours:
             if neighbour is not None:
                 for region in regions:
                     if region.id == neighbour:
                         nE = region.edges
                         processedFrame[nE[2]:nE[3], nE[0]:nE[1]] = region.pixels
+                        cv2.imshow('proc', processedFrame)
+                        cv2.imshow('lows', frame)
+                        # cv2.waitKey(0)
     return processedFrame
 
 
@@ -152,15 +162,22 @@ def reduceNoiseForBoundary(frame):
     return frame
 
 
-i1 = cv2.imread('test-images/IndexCrash3.png')
-i2 = cv2.imread('test-images/IndexCrash3Shadowed.png')
-i3 = cv2.imread('test-images/IndexCrash3PenShadow.png')
-i4 = cv2.imread('test-images/IndexCrash3TapeShadow.png')
-i5 = cv2.imread('test-images/IndexCrash3PenPartShadow.png')
-i6 = cv2.imread('test-images/grass1.png')
-i7 = cv2.imread('test-images/grass2.png')
-i8 = cv2.imread('test-images/concrete1.png')
-iA = [i1, i2, i3, i4, i5, i6, i7, i8]
+iA = []
+# iA.append(cv2.imread('test-images/IndexCrash3.png'))
+# iA.append(cv2.imread('test-images/IndexCrash3Shadowed.png'))
+# iA.append(cv2.imread('test-images/IndexCrash3PenShadow.png'))
+# iA.append(cv2.imread('test-images/IndexCrash3TapeShadow.png'))
+# iA.append(cv2.imread('test-images/IndexCrash3PenPartShadow.png'))
+iA.append(cv2.imread('test-images/grass1.png'))
+iA.append(cv2.imread('test-images/grass2.png'))
+iA.append(cv2.imread('test-images/concrete1.png'))
+# iA.append(cv2.imread('test-images/grass1notape.png'))
+# iA.append(cv2.imread('test-images/grass2notape.png'))
+# iA.append(cv2.imread('test-images/concrete1notape.png'))
+
+# prImage = reduceNoiseForPatterns(i8)
+# cv2.imshow('prImage', prImage)
+# cv2.waitKey(0)
 
 for i in iA:
     print('--------------------------------------------')
