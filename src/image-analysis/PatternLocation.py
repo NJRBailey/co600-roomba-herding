@@ -77,3 +77,11 @@ def getOrientation(frame):
         if code['id'] == 'roomba':
             return code['orientation']
     return None
+
+
+# ic2 = cv2.imread('test-images/IndexCrash2.png')
+# ic3 = cv2.imread('test-images/IndexCrash3.png')
+# print(getPattern(ic2))
+# print(getOrientation(ic2))
+# print(getPattern(ic3))
+# print(getOrientation(ic3))
