@@ -18,14 +18,13 @@ def coordInBounds(coordinate, boundingBox):
 
 
 # Finds the location of a pattern on the screen
-def findPatternLocation(frame, debug=False):
+def getPattern(frame, debug=False):
     # frame = cv2.flip(camFrame, 0)
     if debug:
         cv2.imshow('frame', frame)
         cv2.waitKey(1)
     sections = []
     height, width, _ = frame.shape
-    grayFrame = frame
     # grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # Sectioning of frame
     thirdWidth = int(round(width / 3.0))
@@ -41,9 +40,11 @@ def findPatternLocation(frame, debug=False):
     sections.append(('b', (thirdWidth, thirdHeight * 2), (thirdWidth * 2, height)))
     sections.append(('br', (thirdWidth * 2, thirdHeight * 2), (width, height)))
     # QR Code detection
-    decoded = decode(grayFrame)['identified']
+    decoded = decode(frame)['identified']
+    patterns = {'roombaPosition': None, 'penPosition': None}
     for code in decoded:
-        if code['id'] in ['roomba', 'pen', 'unknown']:
+        # if code['id'] in ['roomba', 'pen', 'unknown']:  Will be used if making improvements to search
+        if code['id'] in ['roomba', 'pen']:
             points = code['polygon']
             # Find centre
             i = 1
@@ -61,6 +62,18 @@ def findPatternLocation(frame, debug=False):
             while foundSection is False and j < 9:
                 foundSection = coordInBounds((centreX, centreY), sections[j])
                 if foundSection is True:
-                    return sections[j][0]
+                    if code['id'] == 'roomba':
+                        patterns['roombaPosition'] = sections[j][0]
+                    else:
+                        patterns['penPosition'] = sections[j][0]
                 j += 1
-    return 'search'
+    return patterns
+
+
+# Returns the orientation of the Roomba in degrees relative to the top of the frame
+def getOrientation(frame):
+    decoded = decode(frame)['identified']
+    for code in decoded:
+        if code['id'] == 'roomba':
+            return code['orientation']
+    return None
