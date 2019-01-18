@@ -240,7 +240,11 @@ def findOrientation(boxes, outerBoxes, shape, frame):
             otherCorners.append(box)
     otherLineCentre = findMidpoint(otherCorners[0]['centre'], otherCorners[1]['centre'])
     if otherLineCentre[1] < centre[1]:
-        yPlus1, _ = frame.shape
+        yPlus1 = 0
+        try:
+            yPlus1, _ = frame.shape
+        except ValueError:
+            yPlus1, _, _ = frame.shape
         perpLineEquation['edgePoint'] = (None, yPlus1 - 1)
     elif otherLineCentre[1] > centre[1]:
         perpLineEquation['edgePoint'] = (None, 0)
