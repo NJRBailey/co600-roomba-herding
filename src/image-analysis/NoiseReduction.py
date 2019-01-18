@@ -1,6 +1,6 @@
 import cv2
-from numpy import zeros
-from numpy import uint8
+# from numpy import zeros
+# from numpy import uint8
 from math import sqrt
 from ImageAnalysisUtils import calculateLength
 
@@ -39,20 +39,20 @@ def findLightnessThresholds(regions):
     highestValue = 0
     frameAverage = 0
     for region in regions:
-        # print(region.averageValue)
         if region.averageLightness < lowestValue:
             lowestValue = region.averageLightness
         if region.averageLightness > highestValue:
             highestValue = region.averageLightness
         frameAverage += region.averageLightness
-        # print(frameAverage)
     frameAverage = frameAverage / len(regions)
-    # print(frameAverage)
+    # print(highestValue)
+    # print(lowestValue)
     thresholdBias = frameAverage / 128.0  # If the avg lightness is lower/higher than 128, we will lower/raise thresholds
     # print(thresholdBias)
     third = ((highestValue - lowestValue) / 3) + lowestValue
-    # print(third)
+    # quarter = ((highestValue - lowestValue) / 4) + lowestValue
     lowThreshold, midThreshold = third * thresholdBias, (third * 2) * thresholdBias
+    # lowThreshold, midThreshold = quarter * 2 * thresholdBias, quarter * 3 * thresholdBias
     return lowThreshold, midThreshold
 
 
@@ -202,7 +202,7 @@ def sampleContrast(region, samplesPerLine, contrastDiff=60):
 # Processes and returns a frame to try and reduce the amount of information which is unrelated to patterns.
 def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples a parameter; return small regions
     # cv2.imshow('frame', frame)
-    cloneFrame = frame.copy()
+    # cloneFrame = frame.copy()
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     height, width = grayFrame.shape
     # Filter out green and red, leave greyscale and blue
@@ -265,13 +265,13 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
             regions.append(Region(ident, edges, lightnessPixels, huePixels, saturationPixels, neighbours, averageLightness, averageHue, averageSaturation, regionsW, regionsH, regionPixels))
 
     # 2. Filter red and green areas
-    processedFrame = zeros((height, width), dtype=uint8)
+    # processedFrame = zeros((height, width), dtype=uint8)
     for region in regions:
         # print(region.averageHue)
         # print(region.averageSaturation)
         e = region.edges
         # print(e)
-        cv2.circle(cloneFrame, ((e[1] + e[0]) / 2, (e[3] + e[2]) / 2), 8, (0, 255, 0))
+        # cv2.circle(cloneFrame, ((e[1] + e[0]) / 2, (e[3] + e[2]) / 2), 8, (0, 255, 0))
         # cv2.imshow('csr', cloneFrame)
         # print('waiting1')
         # cv2.waitKey(0)
@@ -290,9 +290,9 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
                             nBlue = 93 <= regionCheck.averageHue <= 142
                             nGrayscale = regionCheck.averageSaturation <= 38
                             if nBlue or nGrayscale:
-                                nE = regionCheck.edges
+                                # nE = regionCheck.edges
                                 # cv2.circle(cloneFrame, ((nE[1] + nE[0]) / 2, (nE[3] + nE[2]) / 2), 8, (0, 255, 0))
-                                cv2.circle(cloneFrame, ((e[1] + e[0]) / 2, (e[3] + e[2]) / 2), 8, (255, 0, 0))
+                                # cv2.circle(cloneFrame, ((e[1] + e[0]) / 2, (e[3] + e[2]) / 2), 8, (255, 0, 0))
                                 # cv2.imshow('csr', cloneFrame)
                                 # print('waiting3')
                                 # cv2.waitKey(0)
@@ -300,56 +300,57 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
             if erase is True:
                 region.retain = False
                 frame[e[2]:e[3], e[0]:e[1]].fill(255)
-                cloneFrame[e[2]:e[3], e[0]:e[1]].fill(255)
-    cv2.imshow('check', cloneFrame)
-    cv2.imshow('proc', frame)
-    cv2.waitKey(0)
+                # cloneFrame[e[2]:e[3], e[0]:e[1]].fill(255)
+    # cv2.imshow('check', cloneFrame)
+    # cv2.imshow('proc', frame)
+    # cv2.waitKey(0)
 
-    # 3. Find and retain regions with high contrast
-    for region in regions:
-        if region.retain is not False:
-            if sampleContrast(region, 5) is True:
-                region.retain = True
-                # cv2.imshow('retain', region.regionPixels)
-                e = region.edges
-                cv2.circle(cloneFrame, ((e[1] + e[0]) / 2, (e[3] + e[2]) / 2), 8, (255, 0, 255))
-                cv2.imshow('retain', cloneFrame)
-                cv2.waitKey(0)
-    cv2.imshow('retain', cloneFrame)
-    cv2.waitKey(0)
+    # # 3. Find and retain regions with high contrast
+    # # for region in regions:
+    # #     if region.retain is not False:
+    # #         if sampleContrast(region, 5) is True:
+    # #             region.retain = True
+    # #             # cv2.imshow('retain', region.regionPixels)
+    # #             e = region.edges
+    # #             cv2.circle(cloneFrame, ((e[1] + e[0]) / 2, (e[3] + e[2]) / 2), 8, (255, 0, 255))
+    # #             cv2.imshow('retain', cloneFrame)
+    # #             cv2.waitKey(0)
+    # # cv2.imshow('retain', cloneFrame)
+    # # cv2.waitKey(0)
 
-    # 4. Filter out regions of low lightness
-    low, mid = findLightnessThresholds(regions)
-    darkRegions = []
-    for region in regions:
-        if region.retain is not False:
-            pixelLightnessGroups = {'low': 0, 'mid': 0, 'high': 0}
-            for px in region.lightnessPixels:
-                if px <= low:
-                    pixelLightnessGroups['low'] += 1
-                elif px <= mid:
-                    pixelLightnessGroups['mid'] += 1
-                else:
-                    pixelLightnessGroups['high'] += 1
-            region.dominantLightness = findDominantLightness(pixelLightnessGroups)
-            if region.dominantLightness == 'low':
-                darkRegions.append(region)
+    # # 4. Filter out regions of low lightness
+    # low, mid = findLightnessThresholds(regions)
+    # darkRegions = []
+    # for region in regions:
+    #     if region.retain is not False:
+    #         pixelLightnessGroups = {'low': 0, 'mid': 0, 'high': 0}
+    #         for px in region.lightnessPixels:
+    #             if px <= low:
+    #                 pixelLightnessGroups['low'] += 1
+    #             elif px <= mid:
+    #                 pixelLightnessGroups['mid'] += 1
+    #             else:
+    #                 pixelLightnessGroups['high'] += 1
+    #         region.dominantLightness = findDominantLightness(pixelLightnessGroups)
+    #         if region.dominantLightness == 'low':
+    #             darkRegions.append(region)
 
-    for darkRegion in darkRegions:
-        e = darkRegion.edges
-        grayPixels = cv2.cvtColor(darkRegion.regionPixels, cv2.COLOR_BGR2GRAY)
-        processedFrame[e[2]:e[3], e[0]:e[1]] = grayPixels
-        cv2.imshow('proc', processedFrame)
-        for neighbour in darkRegion.neighbours:
-            if neighbour is not None:
-                for region in regions:
-                    if region.id == neighbour:
-                        nE = region.edges
-                        nGrayPixels = cv2.cvtColor(region.regionPixels, cv2.COLOR_BGR2GRAY)
-                        processedFrame[nE[2]:nE[3], nE[0]:nE[1]] = nGrayPixels
-                        cv2.imshow('proc', processedFrame)
-                        # cv2.waitKey(0)
-    return processedFrame
+    # for darkRegion in darkRegions:
+    #     e = darkRegion.edges
+    #     grayPixels = cv2.cvtColor(darkRegion.regionPixels, cv2.COLOR_BGR2GRAY)
+    #     processedFrame[e[2]:e[3], e[0]:e[1]] = grayPixels
+    #     cv2.imshow('proc', processedFrame)
+    #     for neighbour in darkRegion.neighbours:
+    #         if neighbour is not None:
+    #             for region in regions:
+    #                 if region.id == neighbour:
+    #                     nE = region.edges
+    #                     nGrayPixels = cv2.cvtColor(region.regionPixels, cv2.COLOR_BGR2GRAY)
+    #                     processedFrame[nE[2]:nE[3], nE[0]:nE[1]] = nGrayPixels
+    #                     cv2.imshow('proc', processedFrame)
+    #                     # cv2.waitKey(0)
+    # return processedFrame
+    return frame
 
 
 # Processes and returns a frame to try and reduce the amount of information which is unrelated to the arena boundary.
@@ -357,7 +358,7 @@ def reduceNoiseForBoundary(frame):
     return frame
 
 
-iA = []
+# iA = []
 # iA.append(cv2.imread('test-images/IndexCrash3.png'))
 # iA.append(cv2.imread('test-images/IndexCrash3Shadowed.png'))
 # iA.append(cv2.imread('test-images/IndexCrash3PenShadow.png'))
@@ -367,9 +368,9 @@ iA = []
 # iA.append(cv2.imread('test-images/grass2.png'))
 # iA.append(cv2.imread('test-images/concrete1.png'))
 
-iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/grass1.png'))
-iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/grass2.png'))
-iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/concrete1.png'))
+# iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/grass1.png'))
+# iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/grass2.png'))
+# iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/concrete1.png'))
 
 # iA.append(cv2.imread('test-images/grass1notape.png'))
 # iA.append(cv2.imread('test-images/grass2notape.png'))
@@ -379,8 +380,8 @@ iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/s
 # cv2.imshow('prImage', prImage)
 # cv2.waitKey(0)
 
-for i in iA:
-    print('--------------------------------------------')
-    prImage = reduceNoiseForPatterns(i)
-    cv2.imshow('prImage', prImage)
-    cv2.waitKey(0)
+# for i in iA:
+#     # print('--------------------------------------------')
+#     prImage = reduceNoiseForPatterns(i)
+#     cv2.imshow('prImage', prImage)
+#     cv2.waitKey(0)
