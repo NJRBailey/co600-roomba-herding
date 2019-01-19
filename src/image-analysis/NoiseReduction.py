@@ -11,7 +11,8 @@ from ImageAnalysisUtils import calculateLength
 
 # Should hold its own dominant colour, its neighbours, and should set neighbours to None if on an edge
 class Region:
-    def __init__(self, ident, edges, lightPixels, hPixels, sPixels, neighbours, averageLightness, averageHue, averageSaturation, regionsW, regionsH, regionPixels):
+    def __init__(self, ident, edges, lightPixels, hPixels, sPixels, neighbours, averageLightness,
+                 averageHue, averageSaturation, regionsW, regionsH, regionPixels):
         self.id = ident
         self.edges = edges
         self.lightnessPixels = lightPixels
@@ -262,7 +263,11 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
             lightnessPixels, averageLightness = sampleLightness(grayPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight)
             huePixels, averageHue = sampleHue(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight)
             saturationPixels, averageSaturation = sampleSaturation(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight)
-            regions.append(Region(ident, edges, lightnessPixels, huePixels, saturationPixels, neighbours, averageLightness, averageHue, averageSaturation, regionsW, regionsH, regionPixels))
+            regions.append(
+                Region(ident, edges, lightnessPixels, huePixels, saturationPixels, neighbours, averageLightness,
+                       averageHue, averageSaturation, regionsW, regionsH, regionPixels
+                       )
+            )
 
     # 2. Filter red and green areas
     # processedFrame = zeros((height, width), dtype=uint8)
