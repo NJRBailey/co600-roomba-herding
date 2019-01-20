@@ -355,7 +355,8 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
     #                     cv2.imshow('proc', processedFrame)
     #                     # cv2.waitKey(0)
     # return processedFrame
-    return frame
+    finalFrame = cv2.GaussianBlur(frame, (3, 3), 0)
+    return finalFrame
 
 
 # Processes and returns a frame to try and reduce the amount of information which is unrelated to the arena boundary.
