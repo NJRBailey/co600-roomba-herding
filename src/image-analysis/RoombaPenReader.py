@@ -286,6 +286,8 @@ def identifyPattern(boxes, frame):
         for corner in box['corners']:
             if corner == bounds[0] or corner == bounds[1] or corner == bounds[2] or corner == bounds[3]:
                 outerBoxes.append(box)
+    if len(outerBoxes) is not 4:
+        raise ValueError('expected outerBoxes to have length 4 - actual length ' + str(len(outerBoxes)))
     # Find line equations between centres of outer corner boxes
     lineEquations = []
     i = 0
@@ -321,12 +323,15 @@ def identifyPattern(boxes, frame):
 def decode(frame):
     # cv2.imshow('frame', frame)
     cleanFrame = NoiseReduction.reduceNoiseForPatterns(frame)
-    cannyEdgeGray = cv2.Canny(cleanFrame, 127, 255)
-    _, contours, hierarchy = cv2.findContours(cannyEdgeGray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # filterClean = cv2.GaussianBlur(cleanFrame, (3, 3), 0)
+    # cv2.imshow('filterClean', filterClean)
+    cannyEdge = cv2.Canny(cleanFrame, 127, 255)
+    # cannyEdgeClean = cv2.Canny(filterClean, 127, 255)
+    # cv2.imshow('cannyClean', cannyEdgeClean)
+    _, contours, hierarchy = cv2.findContours(cannyEdge, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # _, contours, hierarchy = cv2.findContours(cannyEdgeClean, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cannyLinkedLists = HierarchyReader.readHierarchy(hierarchy[0])
-    # for ll in cannyLinkedLists:
-    #     if len(ll.list) > 5:
-    #         ll.printList()
+    # cv2.waitKey(0)
 
     # hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     # h1, s1, v = cv2.split(hsvFrame)
@@ -342,25 +347,32 @@ def decode(frame):
     # cv2.imshow('g', g)
     # cv2.imshow('r', r)
 
-    # contFrame = frame.copy()
-    # cv2.drawContours(contFrame, contours, -1, (0, 255, 0), 1)
-    # cv2.imshow('contours', contFrame)
-    # cv2.waitKey(0)
+    # for ll in cannyLinkedLists:
+    #     if len(ll.list) > 3:
+    #         ll.printList()
+    #         contFrame = frame.copy()
+    #         for node in ll.list:
+    #             print(node.id)
+    #             cv2.drawContours(contFrame, contours, node.id, (0, 255, 0), 1)
+    #             cv2.imshow('contours', contFrame)
+    #             cv2.waitKey(0)
 
     boxes = []
     # Find the big squares with 6 contours
     for linkedList in cannyLinkedLists:
         if len(linkedList.list) > 5:
-            i = 0
-            for item in linkedList.list:
-                if (len(linkedList.list) - i) == 6:
-                    boundingBox = cv2.minAreaRect(contours[item.id])
-                    corners = cv2.boxPoints(boundingBox).tolist()
-                    moment = cv2.moments(contours[item.id])
-                    centreX = int(moment['m10'] / moment['m00'])
-                    centreY = int(moment['m01'] / moment['m00'])
-                    boxes.append({'id': item.id, 'corners': corners, 'centre': (centreX, centreY)})
-                i += 1
+            # i = 0
+            # for item in linkedList.list:
+            # if (len(linkedList.list) - i) == 6:
+            item = linkedList.list[len(linkedList.list) - 2]
+            # print(item.id)
+            boundingBox = cv2.minAreaRect(contours[item.id])
+            corners = cv2.boxPoints(boundingBox).tolist()
+            moment = cv2.moments(contours[item.id])
+            centreX = int(moment['m10'] / moment['m00'])
+            centreY = int(moment['m01'] / moment['m00'])
+            boxes.append({'id': item.id, 'corners': corners, 'centre': (centreX, centreY)})
+                # i += 1
     # Cases:
     length = len(boxes)
     # 1. none - Nothing on screen
