@@ -4,6 +4,7 @@ from operator import itemgetter
 from math import asin
 from math import degrees
 from ImageAnalysisUtils import calculateLength
+import NoiseReduction
 
 # RoombaPenReader
 # Module used for identifying pattern boxes on a frame. Attempts to identify Roomba and Pen
@@ -19,7 +20,7 @@ from ImageAnalysisUtils import calculateLength
 #
 # Known bugs:
 # 1. Shapes with gradient = 'infinity' (actually max int) not registered
-# 2. Not efficient for more than 6 interesting contours
+# 2. Does not correctly try all combinations of boxes (should do 1-6 | 1,3-7 | 1,4-8 etc.
 REGION_TOLERANCE = 5
 
 
@@ -148,7 +149,7 @@ def generateBoxRegions(boxes):
 
 
 # Finds the orientation of a shape relative to the top of the frame, from 0 degrees to 359 degrees (clockwise)
-def findOrientation(boxes, outerBoxes, shape, frame):
+def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can be replaced by w, h params
     lines = []
     # Find 3 equations from first outer box
     distBC = calculateLength(outerBoxes[1]['centre'], outerBoxes[2]['centre'])
@@ -240,7 +241,11 @@ def findOrientation(boxes, outerBoxes, shape, frame):
             otherCorners.append(box)
     otherLineCentre = findMidpoint(otherCorners[0]['centre'], otherCorners[1]['centre'])
     if otherLineCentre[1] < centre[1]:
-        yPlus1, _ = frame.shape
+        yPlus1 = 0
+        try:
+            yPlus1, _ = frame.shape
+        except ValueError:
+            yPlus1, _, _ = frame.shape
         perpLineEquation['edgePoint'] = (None, yPlus1 - 1)
     elif otherLineCentre[1] > centre[1]:
         perpLineEquation['edgePoint'] = (None, 0)
@@ -314,9 +319,34 @@ def identifyPattern(boxes, frame):
 # which have been identified in the image. The array with key 'investigate' contains
 # boxes which could not be linked to any pattern.
 def decode(frame):
-    cannyEdgeGray = cv2.Canny(frame, 127, 255)
+    # cv2.imshow('frame', frame)
+    cleanFrame = NoiseReduction.reduceNoiseForPatterns(frame)
+    cannyEdgeGray = cv2.Canny(cleanFrame, 127, 255)
     _, contours, hierarchy = cv2.findContours(cannyEdgeGray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cannyLinkedLists = HierarchyReader.readHierarchy(hierarchy[0])
+    # for ll in cannyLinkedLists:
+    #     if len(ll.list) > 5:
+    #         ll.printList()
+
+    # hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # h1, s1, v = cv2.split(hsvFrame)
+    # hlsFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
+    # h2, l, s2 = cv2.split(hlsFrame)
+    # cv2.imshow('h', h1)
+    # cv2.imshow('s', s1)
+    # cv2.imshow('v', v)
+    # cv2.imshow('l', l)
+
+    # b, g, r = cv2.split(frame)
+    # cv2.imshow('b', b)
+    # cv2.imshow('g', g)
+    # cv2.imshow('r', r)
+
+    # contFrame = frame.copy()
+    # cv2.drawContours(contFrame, contours, -1, (0, 255, 0), 1)
+    # cv2.imshow('contours', contFrame)
+    # cv2.waitKey(0)
+
     boxes = []
     # Find the big squares with 6 contours
     for linkedList in cannyLinkedLists:
@@ -341,7 +371,7 @@ def decode(frame):
         return {'identified': [], 'investigate': boxes}
     # 3. six - we should identify it
     if length == 6:
-        identifiedPattern = identifyPattern(boxes, frame)
+        identifiedPattern = identifyPattern(boxes, cleanFrame)
         if identifiedPattern['id'] in ['roomba', 'pen']:
             return {'identified': [identifiedPattern], 'investigate': []}
         else:
@@ -353,7 +383,8 @@ def decode(frame):
         i = 0
         while i <= length - 6:
             boxesSet = [boxes[i], boxes[i + 1], boxes[i + 2], boxes[i + 3], boxes[i + 4], boxes[i + 5]]
-            for identifiedPattern in identifyPattern(boxesSet, frame):
+            for identifiedPattern in identifyPattern(boxesSet, cleanFrame):
+                # print(identifiedPattern)
                 if identifiedPattern['id'] in ['roomba', 'pen']:
                     identified.append(identifiedPattern)
                     for box in boxesSet:
@@ -367,3 +398,30 @@ def decode(frame):
             if box not in whitelist:
                 investigate.append(box)
         return {'identified': identified, 'investigate': investigate}
+
+
+# i1 = cv2.imread('test-images/IndexCrash3.png')
+# i2 = cv2.imread('test-images/IndexCrash3Shadowed.png')
+# i3 = cv2.imread('test-images/IndexCrash3PenShadow.png')
+# i4 = cv2.imread('test-images/IndexCrash3TapeShadow.png')
+# i5 = cv2.imread('test-images/IndexCrash3PenPartShadow.png')
+# iA = [i1, i2, i3, i4, i5]
+
+# i = -1
+# while i < 4:
+#     print('--------------------------------------------')
+#     i += 1
+#     try:
+#         print(decode(iA[i]))
+#         cv2.waitKey(0)
+#     except Exception as e:
+#         print('error with i' + str(i + 1))
+#         print(e)
+
+# iA = []
+# iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/grass1.png'))
+# iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/grass2.png'))
+# iA.append(cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/concrete1.png'))
+# for im in iA:
+#     print('---------')
+#     print(decode(im))
