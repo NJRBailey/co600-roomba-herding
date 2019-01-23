@@ -92,7 +92,7 @@ def sampleLightness(grayPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     return sampledPixels, averageValue
 
 
-#
+# Searches the pixels for nine evenly-spaced pixels. Returns the pixels in a list and the normalised average hue.
 def sampleHue(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     hue, _, _ = cv2.split(hslPixels)
     sampledPixels = [
@@ -124,7 +124,7 @@ def sampleHue(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     return sampledPixels, normalisedAverage
 
 
-#
+# Searches the pixels for nine evenly-spaced pixels. Returns the pixels in a list and the normalised average saturation.
 def sampleSaturation(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     _, _, saturation = cv2.split(hslPixels)
     sampledPixels = [
@@ -156,7 +156,8 @@ def sampleSaturation(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     return sampledPixels, normalisedAverage
 
 
-#
+# Samples top, bottom, left and right and calculates average lightness for each. If differences in lightness
+# are greater than the contrastDiff parameter, returns True. Otherwise, returns False.
 def sampleContrast(region, samplesPerLine, contrastDiff=60):
     e = region.edges
     tl = (e[0], e[2])

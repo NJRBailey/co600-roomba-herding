@@ -3,7 +3,7 @@
 # of the nested contours.
 
 
-# Represents a single contour
+# Node class represents a single contour
 class Node:
     def __init__(self, ident, parent, firstChild):
         self.id = ident
@@ -14,7 +14,7 @@ class Node:
         print('id: ' + str(self.id) + ' | parent: ' + str(self.parent) + ' | first child: ' + str(self.firstChild))
 
 
-# Holds all the nested contours for each connected contour
+# LinkedList class holds all the nested contours for each connected contour
 class LinkedList:
     def __init__(self, lowestNode, nodesList):
         self.list = [lowestNode]
