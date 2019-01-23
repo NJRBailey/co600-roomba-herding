@@ -17,12 +17,8 @@ def coordInBounds(coordinate, boundingBox):
     return False
 
 
-# Finds the location of a pattern on the screen
-def getPattern(frame, debug=False):
-    # frame = cv2.flip(camFrame, 0)
-    if debug:
-        cv2.imshow('frame', frame)
-        cv2.waitKey(1)
+# Divides the frame into 9 sections
+def createFrameSections(frame):
     sections = []
     height, width, _ = frame.shape
     # Sectioning of frame
@@ -38,6 +34,16 @@ def getPattern(frame, debug=False):
     sections.append(('bl', (0, thirdHeight * 2), (thirdWidth, height)))
     sections.append(('b', (thirdWidth, thirdHeight * 2), (thirdWidth * 2, height)))
     sections.append(('br', (thirdWidth * 2, thirdHeight * 2), (width, height)))
+    return sections
+
+
+# Finds the location of a pattern on the screen
+def getPattern(frame, debug=False):
+    # frame = cv2.flip(camFrame, 0)
+    if debug:
+        cv2.imshow('frame', frame)
+        cv2.waitKey(1)
+    sections = createFrameSections(frame)
     # QR Code detection
     decoded = decode(frame)['identified']
     patterns = {'roombaPosition': None, 'penPosition': None}
@@ -78,6 +84,43 @@ def getOrientation(frame):
     return None
 
 
+# Searches for the arena boundary and returns a list containing T, L, R or B, or None.
+def getBoundary(frame):
+    sections = createFrameSections(frame)
+    cardinalSections = [sections[1], sections[3], sections[5], sections[7]]
+    boundarySections = []
+    for section in cardinalSections:
+        width = section[2][0]
+        height = section[2][1]
+        x = section[1][0]
+        y = section[1][1]
+        pinkPixels = False
+        # Sample pixels along a diagonal line
+        while y < height and x < width and pinkPixels is False:
+            region = frame[y][x].tolist()
+            # Gazebo shading means unshadowed pink bound can be between (155, 0, 155) and (103, 38, 103)
+            if region == [80, 0, 80] or (103 <= region[0] <= 155 and region[1] <= 38 and 103 <= region[2] <= 155):
+                pinkPixels = True
+                boundarySections.append(section[0])
+            y += 1
+            x += 1
+    if boundarySections:
+        return boundarySections
+    return None
+
+
+# ins = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/intnotstr.png')
+# bound1 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/FakePinkBound1.png')
+# bound0 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/IndexCrash3.png')
+# bound1shadow = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/FakePinkBound1Shadow.png')
+# bound2 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/FakePinkBound2.png')
+# bound22 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test-images/pinktape2.png')
+# print(getPattern(ins))
+# print(getBoundary(bound1))
+# print(getBoundary(bound1shadow))
+# print(getBoundary(bound2))
+# print(getBoundary(bound0))
+# print(getBoundary(bound22))
 # ic2 = cv2.imread('test-images/IndexCrash2.png')
 # ic3 = cv2.imread('test-images/IndexCrash3.png')
 # print(getPattern(ic2))
