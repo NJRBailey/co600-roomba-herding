@@ -21,7 +21,7 @@ import NoiseReduction
 # Known bugs:
 # 1. Shapes with gradient = 'infinity' (actually max int) not registered
 # 2. Does not correctly try all combinations of boxes (should do 1-6 | 1,3-7 | 1,4-8 etc.
-REGION_TOLERANCE = 5
+REGION_TOLERANCE = 3
 
 
 # Finds and returns the coordinate of the point between two points
@@ -34,35 +34,51 @@ def findMidpoint(point1, point2):
 # screen has origin in top-left corner, not bottom-left corner
 def findLineEquation(point1, point2):
     if point1[0] == point2[0]:
-        m = 2147483647  # Maximum 32-bit int in python, used when m = infinity
+        m = float('inf')  # If the two points are on the same x axis, m is infinity (special case in further code)
     else:
         m = (point2[1] - point1[1]) / (point2[0] - point1[0] * 1.0)
     c = point1[1] - (m * point1[0])
     return {'point1': point1, 'point2': point2, 'm': m, 'c': c}
 
 
+# Creates and returns a region of coordinates around the centre of the box supplied
+def generateBoxRegion(box):
+    tolerance = REGION_TOLERANCE
+    region = []
+    tl = (box['centre'][0] - tolerance, box['centre'][1] - tolerance)
+    r = 0
+    s = 0
+    while r <= tolerance * 2:
+        while s <= tolerance * 2:
+            region.append((tl[0] + s, tl[1] + r))
+            s += 1
+        r += 1
+        s = 0
+    return region
+
+
 # Checks a line from end to end and checks how many boxes it passes through
-def countLineCrossesRegions(line, regions):
+def countLineCrossesBoxes(line, boxes):
     crossCount = 0
-    for region in regions:
-        i = 0
+    for box in boxes:
         crossed = False
-        while crossed is False and i < len(region):
-            expectedY = region[i][1]
-            x = region[i][0]
-            m = line['m']
-            c = line['c']
-            crossed = verifyLineEquation(expectedY, x, m, c)
-            i += 1
+        boxX = box['centre'][0]
+        boxY = box['centre'][1]
+        lineX = line['point1'][0]
+        if line['m'] == float('inf'):
+            crossed = (boxX - REGION_TOLERANCE) <= lineX <= (boxX + REGION_TOLERANCE)
+        else:
+            y = (line['m'] * boxX) + line['c']
+            crossed = (boxY - REGION_TOLERANCE) <= y <= (boxY + REGION_TOLERANCE)
         if crossed:
             crossCount += 1
     return crossCount
 
 
 # Checks that a supplied y falls approximately on the line
-def verifyLineEquation(expectedY, x, m, c):
-    y = (m * x) + c
-    return y > expectedY - 2 and y < expectedY + 2
+# def verifyLineEquation(expectedY, x, m, c):
+#     y = (m * x) + c
+#     return y > expectedY - 2 and y < expectedY + 2
 
 
 # Finds and returns the coordinates for the corners of a pattern.
@@ -86,13 +102,13 @@ def identifyBounds(boxes, frame):
     numberOfSameXs = 0
     numberOfSameYs = 0
     for x in xCount:
-        if xCount[x] == 2:
+        if xCount[x] >= 2:
             numberOfSameXs += 1
     for y in yCount:
-        if yCount[y] == 2:
+        if yCount[y] >= 2:
             numberOfSameYs += 1
     perfectSquare = False
-    if numberOfSameXs == 2 and numberOfSameYs == 2:
+    if numberOfSameXs >= 2 and numberOfSameYs >= 2:
         perfectSquare = True
     if perfectSquare:
         tl = boxes[0]['corners'][0]  # Lowest X, highest Y
@@ -129,25 +145,6 @@ def identifyBounds(boxes, frame):
         return [hX, lX, hY, lY]
 
 
-# Creates and returns a region of coordinates around a point for each box supplied
-def generateBoxRegions(boxes):
-    regions = []
-    tolerance = REGION_TOLERANCE
-    for box in boxes:
-        region = []
-        tl = (box['centre'][0] - tolerance, box['centre'][1] - tolerance)
-        r = 0
-        s = 0
-        while r <= tolerance * 2:
-            while s <= tolerance * 2:
-                region.append((tl[0] + s, tl[1] + r))
-                s += 1
-            r += 1
-            s = r + 1
-        regions.append(region)
-    return regions
-
-
 # Finds the orientation of a shape relative to the top of the frame, from 0 degrees to 359 degrees (clockwise)
 def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can be replaced by w, h params
     lines = []
@@ -177,8 +174,7 @@ def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can
     outerEquations.append(findLineEquation(nonDiagonalEnds[0], lastOuterBox['centre']))
     outerEquations.append(findLineEquation(nonDiagonalEnds[1], lastOuterBox['centre']))
     for eqtn in outerEquations:
-        regions = generateBoxRegions(boxes)
-        lines.append({'endPoints': (eqtn['point1'], eqtn['point2']), 'crosses': countLineCrossesRegions(eqtn, regions)})
+        lines.append({'endPoints': (eqtn['point1'], eqtn['point2']), 'crosses': countLineCrossesBoxes(eqtn, boxes)})
     topLine = None
     if shape == 'pen':
         # Identify lone corner
@@ -232,8 +228,15 @@ def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can
     # Get line eqtn between top line ends
     topLineEquation = findLineEquation(topLine['endPoints'][0], topLine['endPoints'][1])
     centre = findMidpoint(topLine['endPoints'][0], topLine['endPoints'][1])
-    perpLineEquation = {'linePoint': centre, 'm': (-1 / topLineEquation['m'] * 1.0)}
-    perpLineEquation['c'] = centre[1] - (perpLineEquation['m'] * centre[0])
+    perpLineEquation = {}
+    if abs(topLineEquation['m']) == 0.0:
+        perpLineEquation = {'linePoint': centre, 'm': float('inf'), 'c': -float('inf')}
+    elif topLineEquation['m'] == float('inf'):
+        perpLineEquation = {'linePoint': centre, 'm': 0.0}
+        perpLineEquation['c'] = centre[1] - (perpLineEquation['m'] * centre[0])
+    else:
+        perpLineEquation = {'linePoint': centre, 'm': (-1 / topLineEquation['m'] * 1.0)}
+        perpLineEquation['c'] = centre[1] - (perpLineEquation['m'] * centre[0])
     # Find whether to use y = 0 or y = Y
     otherCorners = []
     for box in outerBoxes:
@@ -241,6 +244,8 @@ def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can
             otherCorners.append(box)
     otherLineCentre = findMidpoint(otherCorners[0]['centre'], otherCorners[1]['centre'])
     if otherLineCentre[1] < centre[1]:
+        if otherLineCentre[0] == centre[0]:
+            return 180
         yPlus1 = 0
         try:
             yPlus1, _ = frame.shape
@@ -248,6 +253,8 @@ def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can
             yPlus1, _, _ = frame.shape
         perpLineEquation['edgePoint'] = (None, yPlus1 - 1)
     elif otherLineCentre[1] > centre[1]:
+        if otherLineCentre[0] == centre[0]:
+            return 0
         perpLineEquation['edgePoint'] = (None, 0)
     elif otherLineCentre[0] < centre[0]:
         return 90
@@ -260,7 +267,7 @@ def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can
     primeMeridianPointX = perpLineEquation['linePoint'][0]
     primeMeridianPointY = perpLineEquation['edgePoint'][1]
     lengthOppTarget = calculateLength((primeMeridianPointX, primeMeridianPointY), perpLineEquation['edgePoint'])
-    angle = degrees(asin(lengthOppTarget / lengthOpp90))
+    angle = int(round(degrees(asin(lengthOppTarget / lengthOpp90))))
     # Do the necessary addition or subtraction to find the angle from North (0 to 359)
     if perpLineEquation['edgePoint'][1] == 0:
         if perpLineEquation['edgePoint'][0] <= primeMeridianPointX:
@@ -284,10 +291,10 @@ def identifyPattern(boxes, frame):
     outerBoxes = []
     for box in boxes:
         for corner in box['corners']:
-            if corner == bounds[0] or corner == bounds[1] or corner == bounds[2] or corner == bounds[3]:
+            if (corner == bounds[0] or corner == bounds[1] or corner == bounds[2] or corner == bounds[3]) and box not in outerBoxes:
                 outerBoxes.append(box)
     if len(outerBoxes) is not 4:
-        raise ValueError('expected outerBoxes to have length 4 - actual length ' + str(len(outerBoxes)))
+        return {'id': 'unknown', 'polygon': tuple(bounds)}
     # Find line equations between centres of outer corner boxes
     lineEquations = []
     i = 0
@@ -298,12 +305,10 @@ def identifyPattern(boxes, frame):
             j += 1
         i += 1
         j = i + 1
-    # Find regions from each box centre to check
-    regions = generateBoxRegions(boxes)
     # Go along each line equation and check how many regions the line passes through
     crosses = []
     for line in lineEquations:
-        crosses.append(countLineCrossesRegions(line, regions))
+        crosses.append(countLineCrossesBoxes(line, boxes))
     # Pen = 2x 3, 4x 2
     # Roomba = 3x 3, 3x 2
     if crosses.count(3) == 2 and crosses.count(2) == 4:
@@ -321,89 +326,58 @@ def identifyPattern(boxes, frame):
 # which have been identified in the image. The array with key 'investigate' contains
 # boxes which could not be linked to any pattern.
 def decode(frame):
-    # cv2.imshow('frame', frame)
     cleanFrame = NoiseReduction.reduceNoiseForPatterns(frame)
-    # filterClean = cv2.GaussianBlur(cleanFrame, (3, 3), 0)
-    # cv2.imshow('filterClean', filterClean)
     cannyEdge = cv2.Canny(cleanFrame, 127, 255)
-    # cannyEdgeClean = cv2.Canny(filterClean, 127, 255)
-    # cv2.imshow('cannyClean', cannyEdgeClean)
     _, contours, hierarchy = cv2.findContours(cannyEdge, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # _, contours, hierarchy = cv2.findContours(cannyEdgeClean, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    if hierarchy is None:
+        return {'identified': [], 'investigate': []}
     cannyLinkedLists = HierarchyReader.readHierarchy(hierarchy[0])
-    # cv2.waitKey(0)
-
-    # hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    # h1, s1, v = cv2.split(hsvFrame)
-    # hlsFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
-    # h2, l, s2 = cv2.split(hlsFrame)
-    # cv2.imshow('h', h1)
-    # cv2.imshow('s', s1)
-    # cv2.imshow('v', v)
-    # cv2.imshow('l', l)
-
-    # b, g, r = cv2.split(frame)
-    # cv2.imshow('b', b)
-    # cv2.imshow('g', g)
-    # cv2.imshow('r', r)
-
-    # for ll in cannyLinkedLists:
-    #     if len(ll.list) > 3:
-    #         ll.printList()
-    #         contFrame = frame.copy()
-    #         for node in ll.list:
-    #             print(node.id)
-    #             cv2.drawContours(contFrame, contours, node.id, (0, 255, 0), 1)
-    #             cv2.imshow('contours', contFrame)
-    #             cv2.waitKey(0)
-
     boxes = []
     # Find the big squares with 6 contours
     for linkedList in cannyLinkedLists:
         if len(linkedList.list) > 5:
-            # i = 0
-            # for item in linkedList.list:
-            # if (len(linkedList.list) - i) == 6:
-            item = linkedList.list[len(linkedList.list) - 2]
-            # print(item.id)
+            item = linkedList.list[len(linkedList.list) - 1]
             boundingBox = cv2.minAreaRect(contours[item.id])
             corners = cv2.boxPoints(boundingBox).tolist()
             moment = cv2.moments(contours[item.id])
             centreX = int(moment['m10'] / moment['m00'])
             centreY = int(moment['m01'] / moment['m00'])
             boxes.append({'id': item.id, 'corners': corners, 'centre': (centreX, centreY)})
-                # i += 1
     # Cases:
     length = len(boxes)
     # 1. none - Nothing on screen
     if length == 0:
         return {'identified': [], 'investigate': []}
-    # 2. less than six - we might be near one, go towards
+    # 2. less than six - mark for investigation
     if length < 6:
         return {'identified': [], 'investigate': boxes}
-    # 3. six - we should identify it
+    # 3. six - we should try to identify a pattern
     if length == 6:
         identifiedPattern = identifyPattern(boxes, cleanFrame)
         if identifiedPattern['id'] in ['roomba', 'pen']:
             return {'identified': [identifiedPattern], 'investigate': []}
         else:
             return {'identified': [], 'investigate': boxes}
-    # 4. more than six - We should identify the one, and mark the others for exploration
+    # 4. more than six - We should try to identify a pattern, and mark the others for investigation
     if length > 6:
+        # 1. Find closest boxes and check first
+        # 2. If that didn't find a pattern, use a complicated loop over a list to check each combination
+        # Save each combination of boxes so they can be order-independently checked
+        # If a pattern is found, remove those boxes from the list, and restart the complicated loop
+        # Each loop should check the current boxes against the previously checked combinations
         identified = []
         whitelist = []
         i = 0
         while i <= length - 6:
             boxesSet = [boxes[i], boxes[i + 1], boxes[i + 2], boxes[i + 3], boxes[i + 4], boxes[i + 5]]
-            for identifiedPattern in identifyPattern(boxesSet, cleanFrame):
-                # print(identifiedPattern)
-                if identifiedPattern['id'] in ['roomba', 'pen']:
-                    identified.append(identifiedPattern)
-                    for box in boxesSet:
-                        whitelist.append(box)
-                    i += 6
-                else:
-                    i += 1
+            identifiedPattern = identifyPattern(boxesSet, cleanFrame)
+            if identifiedPattern['id'] in ['roomba', 'pen']:
+                identified.append(identifiedPattern)
+                for box in boxesSet:
+                    whitelist.append(box)
+                i += 6
+            else:
+                i += 1
         # Include the boxes to be investigated
         investigate = []
         for box in boxes:
@@ -418,6 +392,12 @@ def decode(frame):
 # i4 = cv2.imread('test-images/IndexCrash3TapeShadow.png')
 # i5 = cv2.imread('test-images/IndexCrash3PenPartShadow.png')
 # iA = [i1, i2, i3, i4, i5]
+# puregrey = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/PureGrey.png')
+# perfect = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/RoombaBoxesInvertTight.png')
+# ic2 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/IndexCrash2.png')
+# print(decode(perfect))
+# print(decode(ic2))
+# decode(puregrey)
 
 # i = -1
 # while i < 4:
