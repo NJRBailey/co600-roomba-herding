@@ -308,7 +308,7 @@ def identifyPattern(boxes, frame):
     # Go along each line equation and check how many regions the line passes through
     crosses = []
     for line in lineEquations:
-        crosses.append(countLineCrossesBoxes(line, boxes))  # TODO ... but it might be this which doesn't work
+        crosses.append(countLineCrossesBoxes(line, boxes))
     # Pen = 2x 3, 4x 2
     # Roomba = 3x 3, 3x 2
     if crosses.count(3) == 2 and crosses.count(2) == 4:
