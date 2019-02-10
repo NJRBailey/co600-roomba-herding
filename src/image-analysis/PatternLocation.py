@@ -17,12 +17,8 @@ def coordInBounds(coordinate, boundingBox):
     return False
 
 
-# Finds the location of a pattern on the screen
-def getPattern(frame, debug=False):
-    # frame = cv2.flip(camFrame, 0)
-    if debug:
-        cv2.imshow('frame', frame)
-        cv2.waitKey(1)
+# Divides the screen into a 3x3 grid and returns the grid each pattern is in
+def findPatternLocations(frame, decodedPatterns):
     sections = []
     height, width, _ = frame.shape
     # Sectioning of frame
@@ -38,10 +34,8 @@ def getPattern(frame, debug=False):
     sections.append(('bl', (0, thirdHeight * 2), (thirdWidth, height)))
     sections.append(('b', (thirdWidth, thirdHeight * 2), (thirdWidth * 2, height)))
     sections.append(('br', (thirdWidth * 2, thirdHeight * 2), (width, height)))
-    # QR Code detection
-    decoded = decode(frame)['identified']
     patterns = {'roombaPosition': None, 'penPosition': None}
-    for code in decoded:
+    for code in decodedPatterns:
         # if code['id'] in ['roomba', 'pen', 'unknown']:  Will be used if making improvements to search
         if code['id'] in ['roomba', 'pen']:
             points = code['polygon']
@@ -69,6 +63,16 @@ def getPattern(frame, debug=False):
     return patterns
 
 
+# Finds the location of a pattern on the screen
+def getPattern(frame, debug=False):
+    # frame = cv2.flip(camFrame, 0)
+    if debug:
+        cv2.imshow('frame', frame)
+        cv2.waitKey(1)
+    decoded = decode(frame)['identified']
+    return findPatternLocations(frame, decoded)
+
+
 # Returns the orientation of the Roomba in degrees relative to the top of the frame
 def getOrientation(frame):
     decoded = decode(frame, True)['identified']
@@ -76,6 +80,21 @@ def getOrientation(frame):
         if code['id'] == 'roomba':
             return code['orientation']
     return None
+
+
+# Returns the location of the patterns on screen, and the orientation of the Roomba
+def getPatternAndOrientation(frame):
+    decoded = decode(frame, True)['identified']
+    output = {'roomba': None, 'pen': None}
+    locations = findPatternLocations(frame, decoded)
+    if locations['penPosition'] is not None:
+        output['pen'] = {'location': locations['penPosition']}
+    if locations['roombaPosition'] is not None:
+        output['roomba'] = {'location': locations['roombaPosition']}
+        for code in decoded:
+            if code['id'] == 'roomba':
+                output['roomba']['orientation'] = code['orientation']
+    return output
 
 
 # Searches for the arena boundary and returns a list containing T, L, R or B, or None.
@@ -132,7 +151,7 @@ def getBoundary(frame):
 # print(getBoundary(bound1))
 # print(getBoundary(bound1shadow))
 # print(getBoundary(bound2))
-# print(getBoundary(bound0))
+# print(getPatternAndOrientation(bound0))
 # print(getBoundary(bound22))
 # ic2 = cv2.imread('test/test-images/IndexCrash2.png')
 # ic3 = cv2.imread('test/test-images/IndexCrash3.png')
