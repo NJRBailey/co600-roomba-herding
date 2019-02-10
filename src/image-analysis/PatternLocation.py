@@ -83,6 +83,7 @@ def getOrientation(frame):
 
 
 # Returns the location of the patterns on screen, and the orientation of the Roomba
+# Example return: {'roomba': {'location': 'c', 'orientation': 84}, 'pen': {'location: 't'}}
 def getPatternAndOrientation(frame):
     decoded = decode(frame, True)['identified']
     output = {'roomba': None, 'pen': None}
