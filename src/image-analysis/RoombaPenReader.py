@@ -282,7 +282,7 @@ def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can
 
 
 # Takes 6 boxes and attempts to recognise the Roomba or Pen
-def identifyPattern(boxes, frame):
+def identifyPattern(boxes, frame, returnOrientation):
     if len(boxes) is not 6:
         raise ValueError('parameter "boxes" must be of length 6')
     # Find bounds
@@ -311,11 +311,14 @@ def identifyPattern(boxes, frame):
         crosses.append(countLineCrossesBoxes(line, boxes))
     # Pen = 2x 3, 4x 2
     # Roomba = 3x 3, 3x 2
+    orientation = None
     if crosses.count(3) == 2 and crosses.count(2) == 4:
-        orientation = findOrientation(boxes, outerBoxes, 'pen', frame)
+        if returnOrientation:
+            orientation = findOrientation(boxes, outerBoxes, 'pen', frame)
         return {'id': 'pen', 'polygon': tuple(bounds), 'orientation': orientation}
     elif crosses.count(3) == 3 and crosses.count(2) == 3:
-        orientation = findOrientation(boxes, outerBoxes, 'roomba', frame)
+        if returnOrientation:
+            orientation = findOrientation(boxes, outerBoxes, 'roomba', frame)
         return {'id': 'roomba', 'polygon': tuple(bounds), 'orientation': orientation}
     else:
         return {'id': 'unknown', 'polygon': tuple(bounds)}
@@ -325,7 +328,7 @@ def identifyPattern(boxes, frame):
 # Returns a dict containing two arrays. The array with key 'identified' contains patterns
 # which have been identified in the image. The array with key 'investigate' contains
 # boxes which could not be linked to any pattern.
-def decode(frame):
+def decode(frame, returnOrientation=False):
     cleanFrame = NoiseReduction.reduceNoiseForPatterns(frame)
     cannyEdge = cv2.Canny(cleanFrame, 127, 255)
     _, contours, hierarchy = cv2.findContours(cannyEdge, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -353,7 +356,7 @@ def decode(frame):
         return {'identified': [], 'investigate': boxes}
     # 3. six - we should try to identify a pattern
     if length == 6:
-        identifiedPattern = identifyPattern(boxes, cleanFrame)
+        identifiedPattern = identifyPattern(boxes, cleanFrame, returnOrientation)
         if identifiedPattern['id'] in ['roomba', 'pen']:
             return {'identified': [identifiedPattern], 'investigate': []}
         else:
@@ -370,7 +373,7 @@ def decode(frame):
         i = 0
         while i <= length - 6:
             boxesSet = [boxes[i], boxes[i + 1], boxes[i + 2], boxes[i + 3], boxes[i + 4], boxes[i + 5]]
-            identifiedPattern = identifyPattern(boxesSet, cleanFrame)
+            identifiedPattern = identifyPattern(boxesSet, cleanFrame, returnOrientation)
             if identifiedPattern['id'] in ['roomba', 'pen']:
                 identified.append(identifiedPattern)
                 for box in boxesSet:
