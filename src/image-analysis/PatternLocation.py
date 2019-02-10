@@ -71,7 +71,7 @@ def getPattern(frame, debug=False):
 
 # Returns the orientation of the Roomba in degrees relative to the top of the frame
 def getOrientation(frame):
-    decoded = decode(frame)['identified']
+    decoded = decode(frame, True)['identified']
     for code in decoded:
         if code['id'] == 'roomba':
             return code['orientation']
