@@ -98,46 +98,109 @@ def getPatternAndOrientation(frame):
     return output
 
 
-# Searches for the arena boundary and returns a list containing T, L, R or B, or None.
-def getBoundary(frame):
+# Casts four lines in a + shape, returns the first pixel found for each line and the corresponding letter
+def findBoundary(frame):
     height, width, _ = frame.shape
     centre = (width / 2, height / 2)
-    boundarySections = []
-    left = 0
+    boundarySections = {'l': None, 'r': None, 't': None, 'b': None}
+    left = centre[0]  # start in middle of frame
     pinkL = False
-    while left < centre[0] and pinkL is False:
+    while left >= 0 and pinkL is False:
         pixel = frame[centre[1]][left].tolist()
         if pixel == [80, 0, 80] or (103 <= pixel[0] <= 155 and pixel[1] <= 38 and 103 <= pixel[2] <= 155):
             pinkL = True
-            boundarySections.append('l')
-        left += 1
-    right = width - 1
+            boundarySections['l'] = left
+        left -= 1
+    right = centre[0]
     pinkR = False
-    while right > centre[0] and pinkR is False:
+    while right < width and pinkR is False:
         pixel = frame[centre[1]][right].tolist()
         if pixel == [80, 0, 80] or (103 <= pixel[0] <= 155 and pixel[1] <= 38 and 103 <= pixel[2] <= 155):
             pinkR = True
-            boundarySections.append('r')
-        right -= 1
-    top = 0
+            boundarySections['r'] = right
+        right += 1
+    top = centre[1]
     pinkT = False
-    while top < centre[1] and pinkT is False:
+    while top >= 0 and pinkT is False:
         pixel = frame[top][centre[0]].tolist()
         if pixel == [80, 0, 80] or (103 <= pixel[0] <= 155 and pixel[1] <= 38 and 103 <= pixel[2] <= 155):
             pinkT = True
-            boundarySections.append('t')
-        top += 1
-    bottom = 0
+            boundarySections['t'] = top
+        top -= 1
+    bottom = centre[1]
     pinkB = False
-    while bottom > centre[1] and pinkB is False:
+    while bottom < height and pinkB is False:
         pixel = frame[bottom][centre[0]].tolist()
         if pixel == [80, 0, 80] or (103 <= pixel[0] <= 155 and pixel[1] <= 38 and 103 <= pixel[2] <= 155):
             pinkB = True
-            boundarySections.append('b')
-        bottom -= 1
+            boundarySections['b'] = bottom
+        bottom += 1
+    return boundarySections
+
+
+# Searches for the arena boundary and returns a list containing T, L, R or B, or None.
+def getBoundary(frame):
+    boundaries = findBoundary(frame)
+    boundarySections = []
+    for key, value in boundaries.iteritems():
+        if value:
+            boundarySections.append(key)
     if boundarySections:
         return boundarySections
     return None
+
+
+# Returns an approximate distance in mm between the roomba and each visible boundary.
+# Optionally takes a parameter for the four corners of the Roomba pattern which means decode() is not called.
+def getDistanceFromBoundary(frame, roombaSupplied=None):
+    roombaWidthMm = 240  # millimetres, NOT pixels
+    roombaCorners = None
+    if roombaSupplied:
+        roombaCorners = roombaSupplied
+    else:
+        decoded = decode(frame)['identified']
+        for code in decoded:
+            if code['id'] == 'roomba':
+                roombaCorners = code['polygon']
+        if roombaCorners is None:
+            return None
+    length1 = calculateLength(roombaCorners[0], roombaCorners[1])
+    length2 = calculateLength(roombaCorners[0], roombaCorners[2])
+    roombaWidthPx = min([length1, length2])  # Gets the min of two so we don't find the diagonal length
+    mmPerPx = roombaWidthMm / roombaWidthPx
+    boundaries = findBoundary(frame)
+    roombaXs = []
+    roombaYs = []
+    for corner in roombaCorners:
+        roombaXs.append(corner[0])
+        roombaYs.append(corner[1])
+    output = {'l': None, 'r': None, 't': None, 'b': None}
+    for position, pixel in boundaries.iteritems():
+        if position == 'l':  # pixel will be an 'x' coordinate
+            if pixel:
+                leftRoombaX = min(roombaXs)
+                pixelDistance = abs(leftRoombaX - pixel)
+                mmFromLeft = mmPerPx * pixelDistance
+                output['l'] = int(round(mmFromLeft))
+        elif position == 'r':  # pixel will be an 'x' coordinate
+            if pixel:
+                rightRoombaX = max(roombaXs)
+                pixelDistance = abs(pixel - rightRoombaX)
+                mmFromRight = mmPerPx * pixelDistance
+                output['r'] = int(round(mmFromRight))
+        elif position == 't':  # pixel will be a 'y' coordinate
+            if pixel:
+                topRoombaY = min(roombaYs)
+                pixelDistance = abs(topRoombaY - pixel)
+                mmFromTop = mmPerPx * pixelDistance
+                output['t'] = int(round(mmFromTop))
+        else:  # pixel will be a 'y' coordinate
+            if pixel:
+                bottomRoombaY = max(roombaYs)
+                pixelDistance = abs(pixel - bottomRoombaY)
+                mmFromBottom = mmPerPx * pixelDistance
+                output['b'] = int(round(mmFromBottom))
+    return output
 
 
 # ins = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/intnotstr.png')
