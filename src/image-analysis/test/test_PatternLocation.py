@@ -6,6 +6,7 @@ getBoundary = PatternLocation.getBoundary
 getPattern = PatternLocation.getPattern
 getOrientation = PatternLocation.getOrientation
 getPAO = PatternLocation.getPatternAndOrientation
+getDFB = PatternLocation.getDistanceFromBoundary
 
 
 def test_GetBoundary_Right():
@@ -86,3 +87,16 @@ def test_GetPatternAndOrientation_None():
 def test_GetPatternAndOrientation_Blank():
     roombaSim = imread(getcwd() + '/test-images/PureGrey.png')
     assert getPAO(roombaSim) == {'roomba': None, 'pen': None}
+
+
+def test_GetDistanceFromBoundary_TopLeft():
+    topLeftSim = imread(getcwd() + '/test-images/FakeSimDistance.png')
+    assert getDFB(topLeftSim) == {'l': 1393, 't': 653, 'r': None, 'b': None}
+def test_GetDistanceFromBoundary_OneAxisChange():
+    beforeTranslation = imread(getcwd() + '/test-images/FakeSimDistance2.png')
+    afterTranslation = imread(getcwd() + '/test-images/FakeSimDistance3.png')
+    print(getDFB(beforeTranslation))
+    print(getDFB(afterTranslation))
+    print(getPattern(beforeTranslation))
+    assert getDFB(beforeTranslation)['l'] > getDFB(afterTranslation)['l']
+    assert getDFB(beforeTranslation)['b'] == getDFB(afterTranslation)['b']
