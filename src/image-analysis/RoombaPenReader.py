@@ -19,9 +19,8 @@ import NoiseReduction
 # The ID of a box is automatically assigned by OpenCV.
 #
 # Known bugs:
-# 1. Shapes with gradient = 'infinity' (actually max int) not registered
-# 2. Does not correctly try all combinations of boxes (should do 1-6 | 1,3-7 | 1,4-8 etc.
-REGION_TOLERANCE = 3
+# 1. Does not correctly try all combinations of boxes (should do 1-6 | 1,3-7 | 1,4-8 etc.
+REGION_TOLERANCE = 10
 
 
 # Finds and returns the coordinate of the point between two points
@@ -335,6 +334,15 @@ def decode(frame, returnOrientation=False):
     if hierarchy is None:
         return {'identified': [], 'investigate': []}
     cannyLinkedLists = HierarchyReader.readHierarchy(hierarchy[0])
+
+    # cloneFrame = cleanFrame.copy()
+    # cv2.drawContours(cloneFrame, contours, -1, (0, 255, 0), 2)
+    # cv2.imshow('cont', cloneFrame)
+    # cv2.waitKey(0)
+    # for ll in cannyLinkedLists:
+        # if len(ll.list) > 4:
+            # ll.printList()
+
     boxes = []
     # Find the big squares with 6 contours
     for linkedList in cannyLinkedLists:
@@ -397,9 +405,9 @@ def decode(frame, returnOrientation=False):
 # iA = [i1, i2, i3, i4, i5]
 # puregrey = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/PureGrey.png')
 # perfect = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/RoombaBoxesInvertTight.png')
-# ic2 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/IndexCrash2.png')
+ic2 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/FakeSimDistance2.png')
 # print(decode(perfect))
-# print(decode(ic2))
+print(decode(ic2))
 # decode(puregrey)
 
 # i = -1
