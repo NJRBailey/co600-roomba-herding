@@ -285,7 +285,7 @@ def identifyPattern(boxes, frame, returnOrientation):
     if len(boxes) is not 6:
         raise ValueError('parameter "boxes" must be of length 6')
     # Find bounds
-    bounds = identifyBounds(boxes, frame)
+    bounds = identifyBounds(boxes, frame)  # TODO can just return the outerboxes from here
     # Pick corner bound boxes
     outerBoxes = []
     for box in boxes:
