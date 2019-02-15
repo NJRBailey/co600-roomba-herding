@@ -405,9 +405,9 @@ def decode(frame, returnOrientation=False):
 # iA = [i1, i2, i3, i4, i5]
 # puregrey = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/PureGrey.png')
 # perfect = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/RoombaBoxesInvertTight.png')
-ic2 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/FakeSimDistance2.png')
+# ic2 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/FakeSimDistance2.png')
 # print(decode(perfect))
-print(decode(ic2))
+# print(decode(ic2))
 # decode(puregrey)
 
 # i = -1
