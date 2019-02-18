@@ -6,6 +6,7 @@ getBoundary = PatternLocation.getBoundary
 getPattern = PatternLocation.getPattern
 getOrientation = PatternLocation.getOrientation
 getPAO = PatternLocation.getPatternAndOrientation
+getDFB = PatternLocation.getDistanceFromBoundary
 
 
 def test_GetBoundary_Right():
@@ -28,6 +29,9 @@ def test_GetBoundary_Blank():
 def test_GetPatternRoomba_Perfect():
     roombaPerfect = imread(getcwd() + '/test-images/RoombaBoxesInvertTight.png')
     assert getPattern(roombaPerfect) == {'roombaPosition': 'c', 'penPosition': None}
+def test_GetPatternRoomba_Diamond():
+    roombaDiamond = imread(getcwd() + '/test-images/RoombaBoxesInvertTight45.png')
+    assert getPattern(roombaDiamond) == {'roombaPosition': 'c', 'penPosition': None}
 def test_GetPatternRoomba_Simulator():
     roombaSimLight = imread(getcwd() + '/test-images/IndexCrash2.png')
     assert getPattern(roombaSimLight) == {'roombaPosition': 'c', 'penPosition': None}
@@ -57,6 +61,21 @@ def test_GetPattern_Blank():
 def test_GetOrientation_Perfect():
     roombaPerfect = imread(getcwd() + '/test-images/RoombaBoxesInvertTight.png')
     assert getOrientation(roombaPerfect) == 0
+def test_getOrientation_Perfect90():
+    roombaPerfect90 = imread(getcwd() + '/test-images/RoombaBoxesInvertTight90.png')
+    assert getOrientation(roombaPerfect90) == 90
+def test_getOrientation_Perfect180():
+    roombaPerfect180 = imread(getcwd() + '/test-images/RoombaBoxesInvertTight180.png')
+    assert getOrientation(roombaPerfect180) == 180
+def test_getOrientation_Perfect270():
+    roombaPerfect270 = imread(getcwd() + '/test-images/RoombaBoxesInvertTight270.png')
+    assert getOrientation(roombaPerfect270) == 270
+def test_getOrientation_Perfect45():
+    roombaPerfect45 = imread(getcwd() + '/test-images/RoombaBoxesInvertTight45.png')
+    assert getOrientation(roombaPerfect45) == 45
+def test_getOrientation_Perfect265():
+    roombaPerfect265 = imread(getcwd() + '/test-images/RoombaBoxesInvertTight2xx.png')
+    assert getOrientation(roombaPerfect265) == 265
 def test_GetOrientation_Simulator():
     roombaSimLight = imread(getcwd() + '/test-images/IndexCrash2.png')
     assert getOrientation(roombaSimLight) == 84
@@ -86,3 +105,20 @@ def test_GetPatternAndOrientation_None():
 def test_GetPatternAndOrientation_Blank():
     roombaSim = imread(getcwd() + '/test-images/PureGrey.png')
     assert getPAO(roombaSim) == {'roomba': None, 'pen': None}
+
+
+def test_GetDistanceFromBoundary_TopLeft():
+    topLeftSim = imread(getcwd() + '/test-images/FakeSimDistance.png')
+    assert getDFB(topLeftSim) == {'l': 1393, 't': 653, 'r': None, 'b': None}
+def test_GetDistanceFromBoundary_OneAxisChange():
+    beforeTranslation = imread(getcwd() + '/test-images/FakeSimDistance2.png')
+    afterTranslation = imread(getcwd() + '/test-images/FakeSimDistance3.png')
+    assert getDFB(beforeTranslation)['l'] > getDFB(afterTranslation)['l']
+    assert getDFB(beforeTranslation)['b'] == getDFB(afterTranslation)['b']
+def test_GetDistanceFromBoundary_TrueSimulatorBottom():
+    trueSimBottom = imread(getcwd() + '/test-images/DistanceSim1.png')
+    assert getDFB(trueSimBottom) == {'l': None, 't': None, 'r': None, 'b': 1721}
+def test_GetDistanceFromBoundary_TrueSimulatorLeft():
+    trueSimLeft = imread(getcwd() + '/test-images/DistanceSim2.png')
+    print(getPattern(trueSimLeft))
+    assert getDFB(trueSimLeft) == {'l': 2108, 't': None, 'r': None, 'b': None}
