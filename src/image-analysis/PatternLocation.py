@@ -147,12 +147,13 @@ def getBoundary(frame):
             boundarySections.append(key)
     if boundarySections:
         return boundarySections
-    return None
+    return []
 
 
 # Returns an approximate distance in mm between the roomba and each visible boundary.
 # Optionally takes a parameter for the four corners of the Roomba pattern which means decode() is not called.
 def getDistanceFromBoundary(frame, roombaSupplied=None):
+    output = {'l': None, 'r': None, 't': None, 'b': None}
     roombaWidthMm = 240  # millimetres, NOT pixels
     roombaCorners = None
     if roombaSupplied:
@@ -163,7 +164,7 @@ def getDistanceFromBoundary(frame, roombaSupplied=None):
             if code['id'] == 'roomba':
                 roombaCorners = code['polygon']
         if roombaCorners is None:
-            return None
+            return output
     length1 = calculateLength(roombaCorners[0], roombaCorners[1])
     length2 = calculateLength(roombaCorners[0], roombaCorners[2])
     roombaWidthPx = min([length1, length2])  # Gets the min of two so we don't find the diagonal length
@@ -174,7 +175,6 @@ def getDistanceFromBoundary(frame, roombaSupplied=None):
     for corner in roombaCorners:
         roombaXs.append(corner[0])
         roombaYs.append(corner[1])
-    output = {'l': None, 'r': None, 't': None, 'b': None}
     for position, pixel in boundaries.iteritems():
         if position == 'l':  # pixel will be an 'x' coordinate
             if pixel:
