@@ -45,14 +45,16 @@ def generateBoxRegion(box):
     tolerance = REGION_TOLERANCE
     region = []
     tl = (box['centre'][0] - tolerance, box['centre'][1] - tolerance)
-    r = 0
-    s = 0
-    while r <= tolerance * 2:
-        while s <= tolerance * 2:
-            region.append((tl[0] + s, tl[1] + r))
-            s += 1
-        r += 1
-        s = 0
+    col = 0
+    row = 0
+    colLimit = 0
+    rowLimit = 0
+    while col <= tolerance * 2:
+        while row <= tolerance * 2:
+            region.append((tl[0] + row, tl[1] + col))
+            row += 1
+        col += 1
+        row = 0
     return region
 
 
@@ -63,8 +65,8 @@ def countLineCrossesBoxes(line, boxes):
         crossed = False
         boxX = box['centre'][0]
         boxY = box['centre'][1]
-        lineX = line['point1'][0]
         if line['m'] == float('inf'):
+            lineX = line['point1'][0]
             crossed = (boxX - REGION_TOLERANCE) <= lineX <= (boxX + REGION_TOLERANCE)
         else:
             y = (line['m'] * boxX) + line['c']
@@ -81,7 +83,7 @@ def countLineCrossesBoxes(line, boxes):
 
 
 # Finds and returns the coordinates for the corners of a pattern.
-def identifyBounds(boxes, frame):
+def identifyBounds(boxes):
     # Check whether pattern is a perfectly-aligned square
     # Save all the xs and ys with the number of times they appear
     # If two xs and two ys appear twice each, that is a perfect square
@@ -285,7 +287,7 @@ def identifyPattern(boxes, frame, returnOrientation):
     if len(boxes) is not 6:
         raise ValueError('parameter "boxes" must be of length 6')
     # Find bounds
-    bounds = identifyBounds(boxes, frame)  # TODO can just return the outerboxes from here
+    bounds = identifyBounds(boxes)  # TODO can just return the outerboxes from here
     # Pick corner bound boxes
     outerBoxes = []
     for box in boxes:
@@ -405,9 +407,9 @@ def decode(frame, returnOrientation=False):
 # iA = [i1, i2, i3, i4, i5]
 # puregrey = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/PureGrey.png')
 # perfect = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/RoombaBoxesInvertTight.png')
-ic2 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/FakeSimDistance2.png')
+# ic2 = cv2.imread('C:/Users/Nicholas/Desktop/CO600/Git/co600-roomba-herding/src/image-analysis/test/test-images/FakeSimDistance2.png')
 # print(decode(perfect))
-print(decode(ic2))
+# print(decode(ic2))
 # decode(puregrey)
 
 # i = -1
