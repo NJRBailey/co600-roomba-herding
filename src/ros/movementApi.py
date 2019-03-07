@@ -4,13 +4,16 @@
 
 import rospy
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Empty
 import RosUtils
 
-# movementApi should be instansiated once and then called when needed
 class movementApi:
 
     def __init__(self):
         self.dirPub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+        self.takeOffPub = rospy.Publisher('ardrone/takeoff', Empty, queue_size=1)
+        self.landPub = rospy.Publisher('ardrone/land', Empty, queue_size=1)
+        self.emergencyPub = rospy.Publisher('ardrone/reset', Empty, queue_size=1)
 
     def forward(self, speed):
         self.dirPub.publish(RosUtils.create_twist(speed, 0, 0, 0, 0, 0))
@@ -27,8 +30,17 @@ class movementApi:
     def stop(self):
         self.dirPub.publish(RosUtils.create_twist(0, 0, 0, 0, 0, 0))
 
-    def custom(self, x, y, z, a, b, c):
-        self.dirPub.publish(RosUtils.create_twist(x, y, z, a, b, c))
+    def custom(self, x, y, z, rotX, rotY, rotZ):
+        self.dirPub.publish(RosUtils.create_twist(x, y, z, rotX, rotY, rotZ))
+
+    def takeOff(self):
+        self.takeOffPub.publish(Empty())
+
+    def land(self):
+        self.landPub.publish(Empty())
+    
+    def emergency(self):
+        self.emergencyPub.publish(Empty())
 
 movementApi()
 

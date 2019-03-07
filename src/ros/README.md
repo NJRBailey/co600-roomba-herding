@@ -70,5 +70,18 @@ self.HeightOffsetSrv = rospy.ServiceProxy('height_offset_srv', HieghtOffset)
 response = self.HeightOffsetSrv()
 ```
 
+## Running ROS:
 
+In order to run the ROS project ROS kinetic must be installed.
 
+* In a new terminal window use ```roscore``` to launch ROS
+
+* In a new terminal either use ```roslaunch cvg_sim_gazebo ardrone_4x4invert.launch ``` to launch the simulated world or use ```rosrun ardrone_autonomy ardrone_driver```to launch the ardrone driver (must be connected to ardrone wifi)
+
+* In a new terminal use ```rosrun co600_proj ImageSub.py``` to launch the image subscriber service.
+
+* In a new terminal use ```rosrun co600_proj NavdataCoordinator.py``` to launch the navdata subscriber service.
+
+* In the final terminal window use ```rosrun co600_proj master.py``` to launch the master node, this will wait 5 seconds, then start the search and return process.
+
+* If you want to overide the drone with the keyboard use ```python keyboardTeleop```.
