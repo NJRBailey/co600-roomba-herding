@@ -1,0 +1,3 @@
+# Project scope
+
+The project is a search and rescue project using an autonomous drone. An area of variable size is marked out, and contains a ‘lost’ robot, which is on a random walk. The drone camera is used to identify the lost robot. The search patterns used are taken from research on real-world search and rescue techniques. Custom markers are used to identify the lost robot and the safe location.
