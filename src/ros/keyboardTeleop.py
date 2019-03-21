@@ -1,14 +1,18 @@
 #!/usr/bin/env python
-# keyboardTeleop.py uses keyboard input to control drone
-# works for simulator and real drone.
 
 from pynput.keyboard import Key, Listener
 import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Empty
 
+## keyboardTeleop allows control of the drone, either in the simulator and real life via the keyboard.
+#
+# This code overides the keyboard, in order to exit press 'esc'.
 def keyboardTeleop():
 
+    ## Checks the pressed key and publishes a movement command based on the result.
+    #
+    # @param key The pressed key.
     def onPress(key):
         print('{0} pressed'.format(key))
         if key == Key.up:
@@ -48,6 +52,9 @@ def keyboardTeleop():
         except AttributeError:
             pass
 
+    ## Checks the released key and performs an action
+    #
+    # @param key The released key.
     def onRelease(key):
         print('{0} release'.format(key))
         if key == Key.esc:
@@ -58,6 +65,7 @@ def keyboardTeleop():
         else:
             dirPub.publish(createTwist(0, 0, 0, 0, 0, 0))
 
+    ## Creates a twist message object
     def createTwist(x, y, z, a, b, c):
         twist = Twist()
         twist.linear.x = x

@@ -7,8 +7,13 @@ import sys
 from sensor_msgs.msg import Image
 from co600_proj.srv import GetLatestImage
 
+## ImageSub is responsible for storing the last image recieved from the drone.
 class ImageSub:
 
+    ## Initialises ImageSub
+    #
+    # Starts 1 ROS subscriber and 1 ROS service.
+    # @param simulator Used to identify if we are working in simulator or not as queue name changes.
     def __init__(self, simulator=True):
         if simulator:
             queue = 'ardrone/bottom/image_raw'
@@ -22,9 +27,16 @@ class ImageSub:
         self.latestImage = None
         rospy.spin()
 
+    ## Callback for ROS subscriber
+    #
+    # Stores the image recieved from drone.
     def callback(self, RosImage):
         self.latestImage = RosImage
 
+    ## ROS service response.
+    #
+    # Returns the last image recieved from the drone.
+    # @param req ROS service request.
     def getLatestImage(self, req):
         return self.latestImage
 

@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 
-# Search.py automates the drone's movement and
-# whilst doing so checks if the current frame is showing
-# the roomba marker.
-#
-# This uses a lawnmowing path, covering the whole arena
-#
-
 import rospy
 from image_analysis import PatternLocation
 import movementApi
@@ -14,9 +7,14 @@ from co600_proj.srv import GetLatestImage, RotationOffset, HeightOffset
 from RosUtils import RosImageToCv
 import time
 
-
+## SearchRoomba is responsible for finding the roomba.
+#
+# This version of search roomba creates a lawnmowing path and follows that until it finds the roomba.
 class SearchRoomba:
 
+    ## Initialises the SearchRoomba object
+    #
+    # @param movementApi movementApi to publish movement commands to drone.
     def __init__(self, movementApi=movementApi.movementApi()):
         self.movementApi = movementApi
         rospy.wait_for_service('latest_image_srv')
@@ -25,6 +23,7 @@ class SearchRoomba:
         self.heightOffsetSrv = rospy.ServiceProxy('height_offset_srv', HeightOffset)
         self.search()
 
+    ## Checks the most recent image to locate roomba.
     def checkFrame(self):
         try:
             frameCheck = PatternLocation.getPattern(RosImageToCv(self.LatestImageSrv().image), True)
@@ -39,6 +38,7 @@ class SearchRoomba:
             print(e)
             return False
 
+    ## Creates a path and then follows it.
     def search(self):
         # backward  left    right   stop
         #check if near a boundary by getting the coordinates
@@ -47,6 +47,9 @@ class SearchRoomba:
         self.furthestPoint = [3,3]
         self.createPath(self.furthestPoint)
 
+    ## Generates a lawnmowing bath based on the furthest coordinate.
+    #
+    # @param endCoord the ending coordinate.
     def createPath(self, endCoord):
         xCoord = 0
         path = []
@@ -61,7 +64,12 @@ class SearchRoomba:
                     path.append([z,x])
         print(path)
         self.moveDrone(path)
-
+    
+    ## Moves the drone along the lawnmowing path.
+    #
+    # @param path The path the drone should follow.
+    # @param lastX the last x coordinate the drone travelled along.
+    # @param lastY the last y coordinate the drone travelled along.
     def moveDrone(self, path, lastX=0, lastY=0):
         found = False
         for pos in path:
@@ -85,6 +93,10 @@ class SearchRoomba:
                 return found
         self.moveDrone(list(reversed(path)),lastX,lastY)  # reverses the given path then starts again
 
+    ## Moves the drone for an amount of time whilst checking the images the drone returns.
+    # 
+    # @param xMove the speed at which the drone should move along the x axis.
+    # @param yMove the speed at which the drone should move along the y axis.
     def checkImages(self, xMove = 0, yMove = 0):
         startTime = time.clock()
         found = False

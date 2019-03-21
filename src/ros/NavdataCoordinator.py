@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# Subscribes to the navdata stream and monitors the difference in desired/actual height
-
 import rospy
 from ardrone_autonomy.msg import Navdata
 from co600_proj.srv import HeightOffset, RotationOffset
@@ -12,8 +10,14 @@ ACCEPTABLE_OFFSET = 100
 # 10 degrees of error for rotational drift
 ROT_OFFSET = 5
 
+## NavdataCoordinator is responsible for interpreting navdata messages sent from the drone.
+#
+# Service is launched with command: "rosrun co600_proj NavdataCoordinator"
 class NavdataCoordinator:
 
+    ## Initialises NavdataCoordinator
+    #
+    # Launches 1 ROS subscriber and 2 ROS services
     def __init__(self):
         rospy.init_node('navdata_coordination_server', anonymous=False)
         self.subscriber = rospy.Subscriber('ardrone/navdata', Navdata, self.callback)
@@ -23,6 +27,9 @@ class NavdataCoordinator:
         self.rotationOffset = 0
         rospy.spin()
 
+    ## Callback for ROS subscriber.
+    #
+    # Stores the value of the drones height and rotation.
     def callback(self, navdata):
         if navdata.altd - DESIRED_HEIGHT > ACCEPTABLE_OFFSET:
             self.heightOffset = -1
@@ -38,9 +45,17 @@ class NavdataCoordinator:
         else:
             self.rotationOffset = 0
 
+    ## Response for ROS service
+    #
+    # Returns the value of height offset.
+    # @param req ROS service request
     def getHeightOffset(self, req):
         return self.heightOffset
 
+    ## Response for ROS service
+    #
+    # Returns the value of rotation offset
+    # @param req ROS service request
     def getRotationOffset(self, req):
         return self.rotationOffset
 

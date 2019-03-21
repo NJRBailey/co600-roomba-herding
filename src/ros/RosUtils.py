@@ -4,7 +4,7 @@ import rospy
 from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge, CvBridgeError
 
-# Creates a geometry twist message used to control drone's direction.
+## Creates a geometry twist message used to control drone's direction.
 def create_twist(x, y, z, a, b, c):
     twist = Twist()
     twist.linear.x = x
@@ -15,7 +15,9 @@ def create_twist(x, y, z, a, b, c):
     twist.angular.z = c
     return twist
 
-# Converts an image recieved via ROS into an openCV compatible format
+## Converts an image recieved via ROS into an OpenCV compatible format
+#
+# @param image A ROS message image.
 def RosImageToCv(image):
     bridge = CvBridge()
     try:

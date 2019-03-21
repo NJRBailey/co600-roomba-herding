@@ -1,32 +1,29 @@
 #!/usr/bin/env python
 
-# return workflow -> Stay above roomba:
-#                    Get orientation:
-#                    Rotate roomba west (270 degrees from 0)
-#                    Move roomba forward (west) until we find a boundary
-#                    Rotate roomba south (180 degrees from 0)
-#                    Move roomba forward (south)
-#                    Stop at boundary
-
 import traceback
 import rospy
 from image_analysis import PatternLocation
 import movementApi
-import simRoombaMove
+import roombaMovementApi
 from RosUtils import RosImageToCv
 from co600_proj.srv import HeightOffset, GetLatestImage, RotationOffset, StopRoomba
 
+## guide is responsible for returning the roomba to the pen and ensuring the drone stays above the roomba.
 class guide:
 
+    ## Initialises the guide object
+    #
+    # @param movementApi movementApi to publish messages to drone.
     def __init__(self, movementApi = movementApi.movementApi()):
         self.movementApi = movementApi
-        self.roombaMovementApi = simRoombaMove.simRoombaMove()
+        self.roombaMovementApi = roombaMovementApi.roombaMovementApi()
         self.latestImageSrv = rospy.ServiceProxy('latest_image_srv', GetLatestImage)
         self.rotationOffsetSrv = rospy.ServiceProxy('rotation_offset_srv', RotationOffset)
         self.heightOffsetSrv = rospy.ServiceProxy('height_offset_srv', HeightOffset)
         self.stopRoombaSrv = rospy.ServiceProxy('stop_roomba_srv', StopRoomba)
         self.execute()
 
+    ## Guides the roomba back to its pen.
     def execute(self):
         self.stopRoombaSrv()
         self.roombaMovementApi.stop()
@@ -50,6 +47,9 @@ class guide:
             patterns = self.getPatterns(self.latestImageSrv().image)
             self.moveDrone(patterns['roomba']['location'])
 
+    ## Rotates the roomba until it is at the desiredRotation
+    #
+    # @param desiredRotation The rotation the roomba will turn to.
     def rotateRoombaMethod(self, desiredRotation):
         patterns = self.getPatterns(self.latestImageSrv().image)
         while not(desiredRotation - 5 <= patterns['roomba']['orientation'] <= desiredRotation + 5):
@@ -58,6 +58,9 @@ class guide:
             patterns = self.getPatterns(self.latestImageSrv().image)
         self.roombaMovementApi.stop()
 
+    ## Moves the roomba until the drone's camera can see the specified boundary.
+    #
+    # @param boundary The boundary to move towards.
     def moveRoombaUntilBoundary(self, boundary):
         print("moving to boundary")
         self.roombaMovementApi.forward(0.25)
@@ -73,6 +76,9 @@ class guide:
         self.roombaMovementApi.stop()
         print("I can see boundary")
 
+    ## Moves the drone until it is 300mm from a boundary
+    #
+    # @param boundary The boundary to move towards
     def moveRoombaUpToBoundary(self, boundary):
         print("moving up to boundary")
         self.roombaMovementApi.forward(0.25)
@@ -83,6 +89,9 @@ class guide:
             frame = RosImageToCv(self.latestImageSrv().image)
         self.roombaMovementApi.stop()
 
+    ## Gets the distance between the boundary and roomba
+    #
+    # @param frame An OpenCV compatible frame
     def getDistance(self, frame):
         # try:
         result = PatternLocation.getDistanceFromBoundary(frame)
@@ -97,6 +106,9 @@ class guide:
         #     traceback.print_exc()
         #     return {'l':200}
 
+    ## Gets the patterns found in a frame.
+    #
+    # @param frame A ROS compatible frame.
     def getPatterns(self, frame):
         try:
             result = PatternLocation.getPatternAndOrientation(RosImageToCv(frame))
@@ -110,6 +122,10 @@ class guide:
             print(e)
             return {'roomba':{'location':'c', 'orientation':0}}
 
+    ## Rotates the roomba to the desired rotation
+    #
+    # @param currentRotation The current rotation of the roomba.
+    # @param desiredRotation The desired rotation of the roomba.
     def rotateRoomba(self, currentRotation, desiredRotation):
         try:
             if currentRotation > desiredRotation+5:
@@ -121,7 +137,9 @@ class guide:
         except Exception as e:
             print(e)
 
-        
+    ## Moves the drone over the roomba along with correcting rotational and vertical drift.
+    # 
+    # @param roombaPosition The position of the roomba returned from image code. 
     def moveDrone(self, roombaPosition):
         heightOffset = self.heightOffsetSrv()
         rotationOffset = self.rotationOffsetSrv()

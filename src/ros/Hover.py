@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 
-# Hover calls two services, ensures the drone flys at 2meters and will hover
-# over any marker it detects through the camera feed.
-
 import rospy
 from image_analysis import PatternLocation
 import movementApi
 from RosUtils import RosImageToCv
 from co600_proj.srv import HieghtOffset, GetLatestImage
-
 
 class Hover:
 
