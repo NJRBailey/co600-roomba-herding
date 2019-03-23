@@ -4,7 +4,7 @@
 
 ### Explore use of alternative equation of a line
 
-The current image analysis code frequently uses the equation of a line in the form ‘y = mx + c’. This means calculations can fail when m is calculated as infinity, and there is a lot of additional code to account for these cases. It might be possible to simplify the code by using the equation of a line in the form rho = xCosA + ySinA. This is the equation of a line used in the Hough transform, and is used to remove the need to deal with ‘m’.
+The current image analysis code frequently uses the equation of a line in the form ‘y = mx + c’. This means calculations can fail when m is calculated as infinity, and there is a lot of additional code to account for these cases. It might be possible to simplify the code by using the equation of a line in the form rho = xCosθ + ySinθ. This is the equation of a line used in the Hough transform, and is used to remove the need to deal with ‘m’.
 
 Using this form of the line equation could also improve detection reliability, as currently the detection can be inconsistent due to mathematical rounding errors. Using this equation may reduce the amount of rounding which takes place and improve reliability.
 
