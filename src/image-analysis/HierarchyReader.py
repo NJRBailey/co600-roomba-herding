@@ -3,19 +3,30 @@
 # of the nested contours.
 
 
-# Node class represents a single contour
+## Node class represents a single contour.
 class Node:
+
+    ## Initialises a Node.
+    #
+    # @param ident The identifier for this contour.
+    # @param parent The identifier for the parent contour.
+    # @param firstChild The identifier for the first child contour.
     def __init__(self, ident, parent, firstChild):
         self.id = ident
         self.parent = parent
         self.firstChild = firstChild
 
+    ## Prints this Node's attributes in the terminal.
     def printSelf(self):
         print('id: ' + str(self.id) + ' | parent: ' + str(self.parent) + ' | first child: ' + str(self.firstChild))
 
 
-# LinkedList class holds all the nested contours for each connected contour
+## LinkedList class holds all the nested contours for each connected contour.
 class LinkedList:
+    ## Initialises a LinkedList.
+    #
+    # @param lowestNode The lowest node in the hierarchy, i.e. the node with most ancestors.
+    # @param nodesList A list containing all nodes.
     def __init__(self, lowestNode, nodesList):
         self.list = [lowestNode]
         # Loop up through the parents until we find the top
@@ -24,8 +35,9 @@ class LinkedList:
             for node in nodesList:
                 if node.id == self.list[0].parent:
                     parentNode = node
-            self.list.insert(0, parentNode)  # todo use collections.deque for quicker adding
+            self.list.insert(0, parentNode)  # TODO use collections.deque for quicker adding
 
+    ## Prints this list's Node IDs in the terminal.
     def printList(self):
         idsList = []
         for node in self.list:
@@ -33,7 +45,10 @@ class LinkedList:
         print(idsList)
 
 
-# Constructs and returns an array of linkedLists to represent the hierarchy of each contour
+## Constructs and returns an array of linkedLists to represent the hierarchy of each contour.
+#
+# @param contourList A list of OpenCV contours.
+# @return A list of LinkedList objects.
 def readHierarchy(contourList):
     nodesList = []
     linkedLists = []
