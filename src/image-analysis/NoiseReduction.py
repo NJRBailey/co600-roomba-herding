@@ -9,8 +9,10 @@ from ImageAnalysisUtils import calculateLength
 # There is one for patterns (Pen and Roomba) and one for the arena boundary (hazard tape).
 
 
-# Should hold its own dominant colour, its neighbours, and should set neighbours to None if on an edge
+## Should hold its own dominant colour, its neighbours, and should set neighbours to None if on an edge.
 class Region:
+
+    ## Initialises Region.
     def __init__(self, ident, edges, lightPixels, hPixels, sPixels, neighbours, averageLightness,
                  averageHue, averageSaturation, regionsW, regionsH, regionPixels):
         self.id = ident
@@ -29,12 +31,15 @@ class Region:
         self.regionPixels = regionPixels
         self.retain = None
 
+    ## Sets the dominant lightness for the Region.
     def setDominantLightness(self, lightness):
         self.dominantLightness = lightness
 
 
-# Returns two values - the first is the value under which pixels are 'low' lightness, the second is
-# the value under which pixels are 'mid' lightness
+## Finds the thresholds at which pixels are set to 'low', 'mid' or 'high' lightness.
+#
+# @param regions The regions to analyse when finding the lightness thresholds.
+# @return Returns two values - the 'mid' threshold and the 'high' threshold.
 def findLightnessThresholds(regions):
     lowestValue = 255
     highestValue = 0
@@ -57,7 +62,10 @@ def findLightnessThresholds(regions):
     return lowThreshold, midThreshold
 
 
-# Finds the dominant lightness category for the supplied group
+## Finds the dominant lightness category for the supplied group.
+#
+# @param pxLightGroups A dict {low, mid, high} with values for the number of regions with that lightness.
+# @return A String 'low', 'mid', or 'high' for the most common lightness group.
 def findDominantLightness(pxLightGroups):
     dominantLightness = None
     if pxLightGroups['low'] >= 5:
@@ -75,7 +83,12 @@ def findDominantLightness(pxLightGroups):
     return dominantLightness
 
 
-# Searches the pixels for nine evenly-spaced pixels. Returns the pixels in a list and the average lightness.
+## Searches the pixels for nine evenly-spaced pixels for the average lightness.
+#
+# @param grayPixels The greyscale pixels in this region.
+# @param pxSpaceX,pxSpaceY The spacing between pixels to be sampled.
+# @param regionWidth,regionHeight The dimensions of the region.
+# @return The pixels in a list and the average lightness.
 def sampleLightness(grayPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     sampledPixels = [
         grayPixels[0 + pxSpaceY][0 + pxSpaceX],
@@ -92,7 +105,12 @@ def sampleLightness(grayPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     return sampledPixels, averageValue
 
 
-# Searches the pixels for nine evenly-spaced pixels. Returns the pixels in a list and the normalised average hue.
+# Searches the pixels for nine evenly-spaced pixels for the normalised average Hue.
+#
+# @param hslPixels The pixels in this region in HSL colour space.
+# @param pxSpaceX,pxSpaceY The spacing between pixels to be sampled.
+# @param regionWidth,regionHeight The dimensions of the region.
+# @return The pixels in a list and the normalised average hue.
 def sampleHue(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     hue, _, _ = cv2.split(hslPixels)
     sampledPixels = [
@@ -124,7 +142,12 @@ def sampleHue(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     return sampledPixels, normalisedAverage
 
 
-# Searches the pixels for nine evenly-spaced pixels. Returns the pixels in a list and the normalised average saturation.
+# Searches the pixels for nine evenly-spaced pixels for the normalised average saturation.
+#
+# @param hslPixels The pixels in this region in HSL colour space.
+# @param pxSpaceX,pxSpaceY The spacing between pixels to be sampled.
+# @param regionWidth,regionHeight The dimensions of the region.
+# @return The pixels in a list and the normalised average saturation.
 def sampleSaturation(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     _, _, saturation = cv2.split(hslPixels)
     sampledPixels = [
@@ -156,8 +179,12 @@ def sampleSaturation(hslPixels, pxSpaceX, pxSpaceY, regionWidth, regionHeight):
     return sampledPixels, normalisedAverage
 
 
-# Samples top, bottom, left and right and calculates average lightness for each. If differences in lightness
-# are greater than the contrastDiff parameter, returns True. Otherwise, returns False.
+## Samples top, bottom, left and right and calculates average lightness for each.
+#
+# @param region The region to be examined.
+# @param samplesPerLine The number of samples to take on each of the four lines being checked.
+# @param contrastDiff Optional - The threshold at which contrast is determined, 1-254, 60 by default.
+# @return Boolean value - True if differences in lightness are greater than the contrastDiff.
 def sampleContrast(region, samplesPerLine, contrastDiff=60):
     e = region.edges
     tl = (e[0], e[2])
@@ -201,7 +228,11 @@ def sampleContrast(region, samplesPerLine, contrastDiff=60):
     return False
 
 
-# Processes and returns a frame to try and reduce the amount of information which is unrelated to patterns.
+## Processes and returns a frame to try and reduce the amount of information which is unrelated to patterns.
+#
+# @param frame An OpenCV-compatible image.
+# @param regionsW, regionsH The Integer amount of columns and rows to split the image into.
+# @return The original frame with filtered areas set to black.
 def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples a parameter; return small regions
     # cv2.imshow('frame', frame)
     # cloneFrame = frame.copy()
@@ -360,7 +391,10 @@ def reduceNoiseForPatterns(frame, regionsW=16, regionsH=9):  # TODO make samples
     return finalFrame
 
 
-# Processes and returns a frame to try and reduce the amount of information which is unrelated to the arena boundary.
+## UNUSED - Processes and returns a frame to try and reduce the amount of information which is unrelated to the arena boundary..
+#
+# @param frame An OpenCV-compatible image.
+# @return UNUSED - returns the frame parameter supplied, currently with no processing applied.
 def reduceNoiseForBoundary(frame):
     return frame
 

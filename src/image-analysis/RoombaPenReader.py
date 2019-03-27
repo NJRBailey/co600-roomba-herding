@@ -71,7 +71,7 @@ def countLineCrossesBoxes(line, boxes):
 ## Finds and returns the coordinates for the corners of a pattern.
 #
 # @param boxes A list of boxes of form {centre, corners}.
-# @param frame An OpenCV compatible image.
+# @param frame An OpenCV-compatible image.
 # @return The four corners of the bounding box of the pattern.
 def identifyBounds(boxes, frame):
     # Check whether pattern is a perfectly-aligned square
@@ -141,7 +141,7 @@ def identifyBounds(boxes, frame):
 # @param boxes A list of boxes of form {centre}.
 # @param outerBoxes A list of boxes of form {centre}.
 # @param shape The pattern, either 'roomba' or 'pen'.
-# @param frame An OpenCV compatible image.
+# @param frame An OpenCV-compatible image.
 # @return An Integer between 0-359.
 def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can be replaced by w, h params
     lines = []
@@ -281,7 +281,7 @@ def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can
 ## Takes 6 boxes and attempts to recognise the Roomba or pen.
 #
 # @param boxes A list of boxes of form {centre, corners}.
-# @param frame An OpenCV compatible image.
+# @param frame An OpenCV-compatible image.
 # @param returnOrientation A Boolean value, will calculate and return orientation if True.
 # @return A dict in form {id, polygon} OR {id, polygon, orientation}.
 def identifyPattern(boxes, frame, returnOrientation):
