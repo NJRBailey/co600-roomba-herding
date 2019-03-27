@@ -23,40 +23,34 @@ import NoiseReduction
 REGION_TOLERANCE = 10
 
 
-# Finds and returns the coordinate of the point between two points
+## Finds and returns the coordinate of the point between two points.
+#
+# @param point1,point2 A tuple (x,y) for a pixel coordinate.
+# @return The (x,y) coordinate of the middle of the two points.
 def findMidpoint(point1, point2):
     midpoint = ((point2[0] + point1[0]) / 2, (point1[1] + point2[1]) / 2)
     return midpoint
 
 
-# Finds the gradient and y-intercept of the line between two points. Swaps the Y values because
-# screen has origin in top-left corner, not bottom-left corner
+## Finds the gradient and y-intercept of the line between two points.
+#
+# @param point1,point2 A tuple (x,y) for a pixel coordinate.
+# @return A dict containing the two points, the gradient and the y-intercept.
 def findLineEquation(point1, point2):
     if point1[0] == point2[0]:
         m = float('inf')  # If the two points are on the same x axis, m is infinity (special case in further code)
     else:
+        # Swaps the Y values because screen has origin in top-left corner, not bottom-left corner
         m = (point2[1] - point1[1]) / (point2[0] - point1[0] * 1.0)
     c = point1[1] - (m * point1[0])
     return {'point1': point1, 'point2': point2, 'm': m, 'c': c}
 
 
-# Creates and returns a region of coordinates around the centre of the box supplied
-def generateBoxRegion(box):
-    tolerance = REGION_TOLERANCE
-    region = []
-    tl = (box['centre'][0] - tolerance, box['centre'][1] - tolerance)
-    r = 0
-    s = 0
-    while r <= tolerance * 2:
-        while s <= tolerance * 2:
-            region.append((tl[0] + s, tl[1] + r))
-            s += 1
-        r += 1
-        s = 0
-    return region
-
-
-# Checks a line from end to end and checks how many boxes it passes through
+## Checks a line from end to end and checks how many boxes it passes through.
+#
+# @param line A dict representing a line equation {point1, point2, m, y}.
+# @param boxes A list of boxes of form {centre}.
+# @return The number of times the line crosses a box in the pattern.
 def countLineCrossesBoxes(line, boxes):
     crossCount = 0
     for box in boxes:
@@ -74,13 +68,11 @@ def countLineCrossesBoxes(line, boxes):
     return crossCount
 
 
-# Checks that a supplied y falls approximately on the line
-# def verifyLineEquation(expectedY, x, m, c):
-#     y = (m * x) + c
-#     return y > expectedY - 2 and y < expectedY + 2
-
-
-# Finds and returns the coordinates for the corners of a pattern.
+## Finds and returns the coordinates for the corners of a pattern.
+#
+# @param boxes A list of boxes of form {centre, corners}.
+# @param frame An OpenCV-compatible image.
+# @return The four corners of the bounding box of the pattern.
 def identifyBounds(boxes, frame):
     # Check whether pattern is a perfectly-aligned square
     # Save all the xs and ys with the number of times they appear
@@ -144,7 +136,13 @@ def identifyBounds(boxes, frame):
         return [hX, lX, hY, lY]
 
 
-# Finds the orientation of a shape relative to the top of the frame, from 0 degrees to 359 degrees (clockwise)
+## Finds the orientation of a shape relative to the top of the frame, from 0 degrees to 359 degrees (clockwise).
+#
+# @param boxes A list of boxes of form {centre}.
+# @param outerBoxes A list of boxes of form {centre}.
+# @param shape The pattern, either 'roomba' or 'pen'.
+# @param frame An OpenCV-compatible image.
+# @return An Integer between 0-359.
 def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can be replaced by w, h params
     lines = []
     # Find 3 equations from first outer box
@@ -280,7 +278,12 @@ def findOrientation(boxes, outerBoxes, shape, frame):  # TODO frame probably can
             return 180 + angle
 
 
-# Takes 6 boxes and attempts to recognise the Roomba or Pen
+## Takes 6 boxes and attempts to recognise the Roomba or pen.
+#
+# @param boxes A list of boxes of form {centre, corners}.
+# @param frame An OpenCV-compatible image.
+# @param returnOrientation A Boolean value, will calculate and return orientation if True.
+# @return A dict in form {id, polygon} OR {id, polygon, orientation}.
 def identifyPattern(boxes, frame, returnOrientation):
     if len(boxes) is not 6:
         raise ValueError('parameter "boxes" must be of length 6')
@@ -323,10 +326,11 @@ def identifyPattern(boxes, frame, returnOrientation):
         return {'id': 'unknown', 'polygon': tuple(bounds)}
 
 
-# Takes an image and attempts to identify boxes in Roomba and Pen patterns.
-# Returns a dict containing two arrays. The array with key 'identified' contains patterns
-# which have been identified in the image. The array with key 'investigate' contains
-# boxes which could not be linked to any pattern.
+## Takes an image and attempts to identify boxes in Roomba and Pen patterns.
+#
+# @param frame An OpenCV-compatible image.
+# @param returnOrientation Optional - A Boolean value, if True will calculate orientation of patterns.
+# @return dict containing two arrays, one containing patterns, the other containing all other boxes found.
 def decode(frame, returnOrientation=False):
     cleanFrame = NoiseReduction.reduceNoiseForPatterns(frame)
     cannyEdge = cv2.Canny(cleanFrame, 127, 255)

@@ -6,7 +6,11 @@ from ImageAnalysisUtils import calculateLength
 # Find the location of any identified patterns in one of nine locations on the screen.
 
 
-# Checks to see if a coordinate falls within a box.
+## Checks to see if a coordinate falls within a box.
+#
+# @param coordinate A tuple (x,y) representing a pixel on screen.
+# @param boundingBox A tuple (id, (x,y), (a,b)) where (x,y) and (a,b) are the top-left and bottom-right corners.
+# @return A Boolean value, True if the coordinate was within the bounding box.
 def coordInBounds(coordinate, boundingBox):
     # Check with a < x < b and c < y < d
     if (
@@ -17,7 +21,11 @@ def coordInBounds(coordinate, boundingBox):
     return False
 
 
-# Divides the screen into a 3x3 grid and returns the grid each pattern is in
+## Divides the screen into a 3x3 grid and returns the grid each pattern is in.
+#
+# @param frame An OpenCV-compatible image.
+# @param decodedPatterns An array of patterns which have been found in the frame.
+# @return A dict containing the position ('t','l','b','r','c') of the Roomba and pen if applicable.
 def findPatternLocations(frame, decodedPatterns):
     sections = []
     height, width, _ = frame.shape
@@ -63,7 +71,11 @@ def findPatternLocations(frame, decodedPatterns):
     return patterns
 
 
-# Finds the location of a pattern on the screen
+## Finds the location of a pattern on the screen
+#
+# @param frame An OpenCV-compatible image.
+# @param debug Optional - if True will display the live camera feed in a window.
+# @return A dict containing the position ('t','l','b','r','c') of the Roomba and pen if applicable.
 def getPattern(frame, debug=False):
     # frame = cv2.flip(camFrame, 0)
     if debug:
@@ -73,7 +85,10 @@ def getPattern(frame, debug=False):
     return findPatternLocations(frame, decoded)
 
 
-# Returns the orientation of the Roomba in degrees relative to the top of the frame
+## Returns the orientation of the Roomba in degrees relative to the top of the frame.
+#
+# @param frame An OpenCV-compatible image.
+# @return An Integer between 0-359 representing the rotation of the Roomba, or None.
 def getOrientation(frame):
     decoded = decode(frame, True)['identified']
     for code in decoded:
@@ -82,8 +97,10 @@ def getOrientation(frame):
     return None
 
 
-# Returns the location of the patterns on screen, and the orientation of the Roomba
-# Example return: {'roomba': {'location': 'c', 'orientation': 84}, 'pen': {'location: 't'}}
+## Returns the location of the patterns on screen, and the orientation of the Roomba.
+#
+# @param frame An OpenCV-compatible image.
+# @return Patterns and rotations e.g.{'roomba': {'location': 'c', 'orientation': 84}, 'pen': {'location: 't'}}
 def getPatternAndOrientation(frame):
     decoded = decode(frame, True)['identified']
     output = {'roomba': None, 'pen': None}
@@ -98,7 +115,10 @@ def getPatternAndOrientation(frame):
     return output
 
 
-# Casts four lines in a + shape, returns the first pixel found for each line and the corresponding letter
+## Casts four lines in a + shape, returns the first pixel found for each line and the corresponding letter.
+#
+# @param frame An OpenCV-compatible image.
+# @return A dict containing the pixel location for each direction {'l','r','t','b'}.
 def findBoundary(frame):
     height, width, _ = frame.shape
     centre = (width / 2, height / 2)
@@ -138,7 +158,10 @@ def findBoundary(frame):
     return boundarySections
 
 
-# Searches for the arena boundary and returns a list containing T, L, R or B, or None.
+## Searches for the arena boundary and returns a list containing l, r, t or b.
+#
+# @param frame An OpenCV-compatible image.
+# @return An array which may contain the letters 'l', 'r', 't' or 'b'.
 def getBoundary(frame):
     boundaries = findBoundary(frame)
     boundarySections = []
@@ -150,8 +173,11 @@ def getBoundary(frame):
     return []
 
 
-# Returns an approximate distance in mm between the roomba and each visible boundary.
-# Optionally takes a parameter for the four corners of the Roomba pattern which means decode() is not called.
+## Returns an approximate distance in mm between the roomba and each visible boundary.
+#
+# @param frame An OpenCV-compatible image.
+# @param roombaSupplied Optional - the four corners of the Roomba pattern, so decode() is not called.
+# @return A dict containing an approximate value in mm for 'l', 'r', 't' and 'b'.
 def getDistanceFromBoundary(frame, roombaSupplied=None):
     output = {'l': None, 'r': None, 't': None, 'b': None}
     roombaWidthMm = 240  # millimetres, NOT pixels
