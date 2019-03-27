@@ -1,0 +1,7 @@
+# Image analysis API decisions
+
+The image analysis API was decided as a group based on what functions would be needed when. It was modified throughout development as the requirements for other parts of the project became clearer. Initially we only used getPattern, but as development progressed functions for other features or more specific tasks were added.
+
+The need for certain functions is fairly clear. getPattern attempts to find a pattern on the screen, and getOrientation finds the rotation of those found patterns. The code for these functions should have been more modular in hindsight – getOrientation should be able to accept a pattern which has been found already and purely find the orientation, as currently it does all the work of getPattern, as well as the rotation work. It would also have removed the need for getPatternAndOrientation as a function. This modularity was included with the getDistanceFromBoundary function, which allows the location of a pre-found Roomba marker to be included as an optional parameter, and removes the need to analyse the frame again.
+
+Exact locations are not returned as part of the API – instead, general directions (top, right etc.) are used. This means that the boundary detection code can work much quicker than it otherwise might, because it can return a direction as soon as a boundary is seen, rather than calculating the exact region of the line.
