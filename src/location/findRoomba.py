@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-# findRoomba.py automates the drone's movement and
-# whilst doing so checks if the current frame is showing the QR code
-#
-# This uses a lawnmowing path, covering the whole arena
-
 import rospy
 from image_analysis import PatternLocation
 import movementApi
@@ -12,8 +7,12 @@ from co600_proj.srv import GetLatestImage
 from RosUtils import RosImageToCv
 import time
 
+## findRoomba.py automates the drone's movement and whilst doing so checks if the current frame is showing the QR code
+## This uses a lawnmowing path, covering the whole arena
+
 class findRoomba:
 
+    ## Initialises the findRoomba object
     def __init__(self):
         rospy.init_node('search_node', anonymous=False)
         self.movementApi = movementApi.movementApi()
@@ -21,7 +20,7 @@ class findRoomba:
         self.latestImageSrv = rospy.ServiceProxy('latest_image_srv', GetLatestImage)
         self.search()
 
-    # Gets the most recent frame and sends to Image Analysis module to check if Roomba can be found
+    ## Gets the most recent frame and sends to Image Analysis module to check if Roomba can be found
     def checkFrame(self):
         try:
             frameCheck = PatternLocation.getPattern(RosImageToCv(self.latestImageSrv().image), True)
@@ -34,17 +33,17 @@ class findRoomba:
             print("Image code broken!!!!!")
             print(e)
 
-    # Returns whether or not there is a boundary in the frame, and acts on it
+    ## Returns whether or not there is a boundary in the frame, and acts on it
     def checkBoundary(self):
         None
 
-    # Calls createPath with the furthestPoint. furthestPoint sets the size of the arena by giving the furthest coordinates
+    ## Calls createPath with the furthestPoint. furthestPoint sets the size of the arena by giving the furthest coordinate
     def search(self):
         self.furthestPoint = [3,3]
         path = self.createPath(self.furthestPoint)
         self.moveDrone(path)
 
-    # Creates a path for the drone in form of a list of co-ordinates
+    ## Creates a path for the drone in form of a list of coordinate
     def createPath(self, endCoord):
         xCoord = 0
         path = []
@@ -60,8 +59,11 @@ class findRoomba:
         print(path)
         return path
 
-    # Using the list, drone moves according to the set of values, and also calls the checkFrame method to check if the Roomba can be seen
-    # Movement of the drone (left, right, forward) depends on what the previous values are
+    ## Using the list, drone moves according to the change in the set of values, and also calls the checkFrame method to check if the Roomba can be seen. It calls the function again with a reversed list if Rooma is still not found.
+    # 
+    # @param path A list of coordinates the drone should move to
+    # @param lastX The last x coordinates
+    # @param lastY The last y coordinates
     def moveDrone(self, path, lastX=0, lastY=0):
         for pos in path:
             if pos[0] > lastX:
@@ -88,9 +90,9 @@ class findRoomba:
                 self.movementApi.stop()
                 self.checkFrame()
                 lastY = pos[1]
-        self.moveDrone(list(reversed(path)),lastX,lastY) # calls the function with a reversed path so that if Roomba still not found, it can re-do its path
+        self.moveDrone(list(reversed(path)),lastX,lastY)
     
-    # Increases frame rate by refreshing the frame a few times within 2 seconds
+    ## Increases frame rate by refreshing the frame a few times within 2 seconds
     def checkImages(self):
         startTime = time.clock()
         while(time.clock() - startTime < 2):

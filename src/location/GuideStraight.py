@@ -7,8 +7,14 @@ import simRoombaMove
 from RosUtils import RosImageToCv
 from co600_proj.srv import HeightOffset, GetLatestImage, RotationOffset
 
-class guide:
+## GuideStraight uses the coordinates taken from SearchSpiralPattern or SearchQuadrant and moves straight towards the Roomba after the correct rotation
+class GuideStraight:
 
+    ## Initialises the GuideStraight object
+    #
+    # @param movementApi movementApi to publish messages to drone
+    # @param currentX the x coordinate of the drone/Roomba
+    # @param currentY the y coordinate of the drone/Roomba
     def __init__(self, movementApi = movementApi.movementApi(), currentX, currentY):
         self.movementApi = movementApi
         self.roombaMovementApi = simRoombaMove.simRoombaMove()
@@ -17,6 +23,7 @@ class guide:
         self.heightOffsetSrv = rospy.ServiceProxy('height_offset_srv', HeightOffset)
         self.execute(currentX, currentY)
 
+    ## Guides the roomba back to its pen.
     def execute(self):
         self.roombaMovementApi.stop()
         #step 1: rotate roomba to 270:
@@ -44,6 +51,9 @@ class guide:
         while (True):
             self.moveDrone(RosImageToCv(self.latestImageSrv().image))
     
+    ## Moves the roomba until the drone's camera can see the specified boundary.
+    #
+    # @param boundary The boundary to move towards.
     def moveDrone(self, frame):
         heightOffset = self.heightOffsetSrv()
         rotationOffset = self.rotationOffsetSrv()
@@ -91,6 +101,9 @@ class guide:
         except Exception as e:
             print(e)
 
+    ## Rotates the roomba until it is at the desiredRotation
+    #
+    # @param desiredRotation The rotation the roomba will turn to.
     def rotateRoomba(self, frame, desiredRotation):
         currentRotation = PatternLocation.getOrientation(frame)
         if currentRotation > desiredRotation+5:
