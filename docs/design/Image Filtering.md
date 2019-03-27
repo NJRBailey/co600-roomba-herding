@@ -6,7 +6,7 @@
 
 Image filtering refers to the removal of useless elements from the image, so that there is less to analyse when looking for the Roomba, Pen and arena boundaries. It was first required when testing outside above grass, where the presence of so many individual blades of grass caused the edge detection and contour detection to take far too long, and seriously hinder the performance of the rest of the program.
 What ideas did we have for image filtering?
-While some ideas were thought of before implementation began, many of the techniques used were created as the understanding of the problem and the number of example images increased. The full list of example images used for testing can be found SOMEWHERE TODO.
+While some ideas were thought of before implementation began, many of the techniques used were created as the understanding of the problem and the number of example images increased. Initially we tried using a Gaussian blur to blur the grass, but the clarity of the marker was too badly impacted to make this a viable option. The full list of example images used for testing can be found SOMEWHERE TODO.
 
 ### Important definitions
 
@@ -22,9 +22,9 @@ While some ideas were thought of before implementation began, many of the techni
 ### Initial solutions
 
 Before coding began, we had a fairly poor understanding of the whole problem. We made the incorrect assumption that because we would be using a black and white pattern to identify the Roomba and the Pen, any areas of the image with a saturation above 0 would not be a pattern. This held true within the simulator, but in reality, the black ink used to print the patterns was not pure black.
-TODO Put comparison of simulator and real-life patterns here
-Img Img2
-Colour Colour 2
+
+![Simulator marker](images/FakePinkBound2.png "Marker colour as it appears in the simulator")
+![Real-life marker](images/grass2.png "Marker colour as it appears in real life")
 
 After realising this, another assumption was made that the black ink would be the darkest part of an image, because even if it wasn’t pure black, it was still black in colour, and therefore dark. This led to the first solution implemented in code, which was to assign each pixel a value of ‘low’, ‘mid’ or ‘high’ and filter out the ‘mid’ and ‘high’ values, leaving only the ‘low’ pixels. However, we were aware that looping over every pixel in a high-definition image would be too computationally expensive, so we decided to split each image into segments (called regions) and perform less intensive sampling on each region.
 
