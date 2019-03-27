@@ -1,0 +1,21 @@
+<launch>
+    <param name="robot_description"
+            command="$(find xacro)/xacro.py $(find turtlebot_description)/robots/kobuki_hexagons_asus_xtion_pro.urdf.xacro" />
+        
+    <!-- BEGIN ROBOT 1 -->
+    <group ns="robot1">
+        <param name="tf_prefix" value="robot1_tf" />
+        <include file="$(find cvg_sim_gazebo)/launch/one_robot.launch">
+            <arg name="init_pose" value="-x 2 -y -2 -z 0" />
+            <arg name="robot_name" value="Robot1" />
+        </include>
+    </group>
+
+    <!-- BEGIN QUADCOPTER -->
+    <group>
+        <include file="$(find cvg_sim_gazebo)/launch/spawn_quadrotor.launch" >
+            <arg name="model1" value="$(find cvg_sim_gazebo)/urdf/quadrotor_sensors.urdf.xacro"/> 
+        </include>
+    </group>
+
+</launch>
