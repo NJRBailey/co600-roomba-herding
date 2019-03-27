@@ -5,7 +5,10 @@
 ### What is image filtering and why do we need it?
 
 Image filtering refers to the removal of useless elements from the image, so that there is less to analyse when looking for the Roomba, Pen and arena boundaries. It was first required when testing outside above grass, where the presence of so many individual blades of grass caused the edge detection and contour detection to take far too long, and seriously hinder the performance of the rest of the program.
-What ideas did we have for image filtering?
+
+![Grass contours](images/grassContours1.jpg "The contours drawn when grass is present in the frame.")
+
+### What ideas did we have for image filtering?
 While some ideas were thought of before implementation began, many of the techniques used were created as the understanding of the problem and the number of example images increased. Initially we tried using a Gaussian blur to blur the grass, but the clarity of the marker was too badly impacted to make this a viable option. The full list of example images used for testing can be found SOMEWHERE TODO.
 
 ### Important definitions
